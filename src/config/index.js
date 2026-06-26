@@ -71,6 +71,7 @@ module.exports = {
     enabled: bool('WA_ENABLED', true),
     sessionDir: env('WA_SESSION_DIR', 'storage/wa-session'),
     groupNotify: bool('WA_GROUP_NOTIFY', true),
+    fallbackApiUrl: env('WA_FALLBACK_API_URL', ''),
   },
   email: {
     host: env('SMTP_HOST', 'smtp.gmail.com'),

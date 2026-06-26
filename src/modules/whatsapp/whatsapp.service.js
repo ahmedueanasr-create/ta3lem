@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const logger = require('../../config/logger');
 const config = require('../../config');
 const { WhatsAppMessage } = require('../../models');
@@ -285,6 +286,8 @@ class WhatsAppService {
       await WhatsAppMessage.create({ jid: to, message, status: 'queued', direction: 'out' });
     } catch {}
     if (!this.isReady()) {
+      const fallbackResult = await this._fallbackSend(phone, message);
+      if (fallbackResult) return fallbackResult;
       logger.warn('WhatsApp not ready; message queued', { to });
       return { status: 'queued' };
     }
@@ -298,9 +301,49 @@ class WhatsAppService {
       );
       return { status: 'sent', messageId: sent?.key?.id };
     } catch (err) {
-      logger.error('WhatsApp send failed', { to, error: err.message });
+      logger.error('WhatsApp send failed, trying fallback', { to, error: err.message });
+      const fallbackResult = await this._fallbackSend(phone, message);
+      if (fallbackResult) return fallbackResult;
       return { status: 'failed', error: err.message };
     }
+  }
+
+  async _fallbackSend(phone, message) {
+    const url = config.whatsapp.fallbackApiUrl;
+    if (!url) return null;
+    try {
+      const payload = JSON.stringify({ phone, message });
+      const result = await new Promise((resolve, reject) => {
+        const u = new URL(url);
+        const lib = u.protocol === 'https:' ? https : require('http');
+        const opts = {
+          hostname: u.hostname,
+          port: u.port || (u.protocol === 'https:' ? 443 : 80),
+          path: u.pathname + u.search,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+          timeout: 8000,
+        };
+        const req = lib.request(opts, (res) => {
+          let body = '';
+          res.on('data', (c) => { body += c; });
+          res.on('end', () => resolve({ status: res.statusCode < 400 ? 'sent' : 'failed', fallback: true, response: body.slice(0, 200) }));
+        });
+        req.on('error', () => resolve(null));
+        req.on('timeout', () => { req.destroy(); resolve(null); });
+        req.write(payload);
+        req.end();
+      });
+      if (result) {
+        logger.info('Fallback WA sent', { phone, status: result.status });
+        await WhatsAppMessage.update(
+          { status: result.status },
+          { where: { jid: jid(phone), message, direction: 'out', status: 'queued' } },
+        ).catch(() => {});
+        return result;
+      }
+    } catch {}
+    return null;
   }
 
   async broadcast(phones, message) {

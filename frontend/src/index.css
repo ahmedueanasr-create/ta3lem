@@ -30,3 +30,15 @@ body {
 .count-up {
   font-variant-numeric: tabular-nums;
 }
+.swiper-pagination-bullet {
+  @apply bg-slate-300 dark:bg-slate-600;
+}
+.swiper-pagination-bullet-active {
+  @apply bg-brand-600;
+}
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
