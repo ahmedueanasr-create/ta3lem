@@ -41,7 +41,7 @@ app.get('/health', (_req, res) =>
 app.use(`${config.app.apiPrefix}`, defaultLimiter, mountRoutes());
 
 // serve frontend static files (production single-port deployment via Passenger)
-const publicDir = path.resolve(__dirname, '../../domains/3lm.zaadllc.com/public_html');
+const publicDir = path.resolve(__dirname, '../../../domains/3lm.zaadllc.com/public_html');
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
   app.get('*', (req, res, next) => {
