@@ -20,3 +20,5 @@ livekit*.log
 livekit*.err
 *.zip
 *.exe
+*.cmd
+ssh_*.txt
