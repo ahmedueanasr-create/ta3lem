@@ -7,6 +7,7 @@ const asyncHandler = require('../../utils/asyncHandler');
 const { body } = require('express-validator');
 const validate = require('../../middleware/validate');
 const ROLES = require('../../utils/roles');
+const { paginate, paginateResponse } = require('../../utils/paginate');
 
 const router = express.Router();
 router.use(auth);
