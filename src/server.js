@@ -54,6 +54,8 @@ process.on('uncaughtException', (err) => {
   shutdown('uncaughtException');
 });
 
-if (require.main === module) boot();
+// Always boot (standalone and Passenger)
+boot();
 
-module.exports = { app, server, boot };
+// Export Express app for Passenger (lsnode expects a function)
+module.exports = app;
