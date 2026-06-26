@@ -1,0 +1,54 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install backend dependencies
+        run: npm install
+
+      - name: Install frontend dependencies & build
+        working-directory: ./frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            set -e
+            echo "=== Pulling latest code ==="
+            cd ~/ta3lem
+            git pull origin master
+
+            echo "=== Installing dependencies ==="
+            npm install --omit=dev
+
+            echo "=== Running migrations ==="
+            NODE_ENV=production npx sequelize-cli db:migrate 2>/dev/null || echo "Migrations done or skipped"
+
+            echo "=== Installing frontend & building ==="
+            cd ~/ta3lem/frontend
+            npm install
+            npm run build
+
+            echo "=== Copying frontend to public_html ==="
+            rsync -a ~/ta3lem/frontend/dist/ ~/domains/3lm.zaadllc.com/public_html/
+
+            echo "=== Restarting Node.js app ==="
+            touch ~/domains/3lm.zaadllc.com/nodejs/tmp/restart.txt 2>/dev/null || true
+
+            echo "=== Done ==="
