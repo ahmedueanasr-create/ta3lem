@@ -2,12 +2,16 @@ const express = require('express');
 const auth = require('../../middleware/auth');
 const { checkRole } = require('../../middleware/rbac');
 const asyncHandler = require('../../utils/asyncHandler');
+const { body } = require('express-validator');
+const validate = require('../../middleware/validate');
 const waService = require('../whatsapp/whatsapp.service');
+const settingsService = require('./settings.service');
 const ROLES = require('../../utils/roles');
 
 const router = express.Router();
 router.use(auth, checkRole(ROLES.PLATFORM_ADMIN, ROLES.SUPER_ADMIN));
 
+// WhatsApp status
 router.get('/whatsapp/status', (req, res) => {
   res.json({
     success: true,
@@ -20,6 +24,7 @@ router.get('/whatsapp/status', (req, res) => {
   });
 });
 
+// SSE real-time QR stream
 router.get('/whatsapp/qr-stream', (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -64,6 +69,7 @@ router.get('/whatsapp/qr-stream', (req, res) => {
   });
 });
 
+// WhatsApp pair
 router.post('/whatsapp/pair', asyncHandler(async (req, res) => {
   const { phone } = req.body;
   if (!phone) {
@@ -82,5 +88,33 @@ router.post('/whatsapp/logout', asyncHandler(async (req, res) => {
   await waService.logout();
   res.json({ success: true, message: 'Session deleted, new QR will be generated.' });
 }));
+
+// Platform settings (fallback API URL, etc.)
+router.get('/', (req, res) => {
+  res.json({ success: true, data: settingsService.getAll() });
+});
+
+router.put(
+  '/',
+  asyncHandler(async (req, res) => {
+    const allowed = ['waFallbackApiUrl'];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    const result = settingsService.update(updates);
+    res.json({ success: true, data: result });
+  }),
+);
+
+// Test fallback WhatsApp API
+router.post(
+  '/whatsapp/test-fallback',
+  [body('phone').notEmpty(), body('message').notEmpty(), validate],
+  asyncHandler(async (req, res) => {
+    const result = await settingsService.testFallback(req.body.phone, req.body.message);
+    res.json({ success: true, data: result });
+  }),
+);
 
 module.exports = router;

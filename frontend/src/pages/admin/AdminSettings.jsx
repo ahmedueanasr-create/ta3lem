@@ -22,6 +22,14 @@ export default function AdminSettings() {
   const eventSourceRef = useRef(null);
   const qrCanvasRef = useRef(null);
 
+  // Fallback settings
+  const [fallbackUrl, setFallbackUrl] = useState('');
+  const [fbSaved, setFbSaved] = useState(false);
+  const [testPhone, setTestPhone] = useState('');
+  const [testMsg, setTestMsg] = useState('');
+  const [testResult, setTestResult] = useState(null);
+  const [testLoading, setTestLoading] = useState(false);
+
   const renderQr = useCallback(async (data) => {
     if (!qrCanvasRef.current || !data) return;
     try {
@@ -45,8 +53,16 @@ export default function AdminSettings() {
     } catch {}
   };
 
+  const fetchSettings = async () => {
+    try {
+      const { data } = await api.get('/settings');
+      if (data.data.waFallbackApiUrl) setFallbackUrl(data.data.waFallbackApiUrl);
+    } catch {}
+  };
+
   useEffect(() => {
     fetchStatus().finally(() => setLoading(false));
+    fetchSettings();
 
     const token = localStorage.getItem('accessToken');
     const es = new EventSource(`/api/v1/settings/whatsapp/qr-stream?token=${token}`);
@@ -62,14 +78,8 @@ export default function AdminSettings() {
           setWaStatus((prev) => ({ ...prev, ready: false, status: 'awaiting_scan', qr: d.qr }));
         } else if (d.type === 'status') {
           setWaStatus((prev) => ({ ...prev, ready: d.ready, status: d.status }));
-          if (d.ready) {
-            setQrCode(null);
-            setPairingCode(null);
-          }
-          if (d.qr) {
-            setQrCode(d.qr);
-            renderQr(d.qr);
-          }
+          if (d.ready) { setQrCode(null); setPairingCode(null); }
+          if (d.qr) { setQrCode(d.qr); renderQr(d.qr); }
           if (d.pairingCode) setPairingCode(d.pairingCode);
         }
       } catch {}
@@ -132,6 +142,27 @@ export default function AdminSettings() {
     }
   };
 
+  const saveFallbackUrl = async () => {
+    try {
+      await api.put('/settings', { waFallbackApiUrl: fallbackUrl });
+      setFbSaved(true);
+      setTimeout(() => setFbSaved(false), 3000);
+    } catch {}
+  };
+
+  const testFallbackApi = async () => {
+    if (!testPhone || !testMsg) return;
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const { data } = await api.post('/settings/whatsapp/test-fallback', { phone: testPhone, message: testMsg });
+      setTestResult(data.data);
+    } catch (err) {
+      setTestResult({ status: 'error', message: 'فشل الاتصال بالخادم' });
+    }
+    setTestLoading(false);
+  };
+
   const st = waStatus?.status || 'disconnected';
   const statusInfo = STATUS_MAP[st] || STATUS_MAP.disconnected;
 
@@ -154,11 +185,9 @@ export default function AdminSettings() {
             <div className="mt-6">
               {qrCode && (
                 <div className="text-center">
-                  <p className="mb-4 text-sm text-slate-500">
-                    امسح رمز QR من تطبيق واتساب على هاتفك:
-                  </p>
+                  <p className="mb-4 text-sm text-slate-500">امسح رمز QR من تطبيق واتساب على هاتفك:</p>
                   <div className="flex justify-center">
-                    <div className="rounded-xl border-2 border-slate-200 bg-white p-3 dark:border-slate-700">
+                    <div className="inline-block rounded-xl border-2 border-slate-200 bg-white p-3 dark:border-slate-700">
                       <canvas ref={qrCanvasRef} width={280} height={280} className="h-56 w-56" />
                     </div>
                   </div>
@@ -168,11 +197,7 @@ export default function AdminSettings() {
               {pairingCode && (
                 <div className="mt-4 text-center">
                   <p className="mb-3 text-sm text-slate-500">أو استخدم رمز الإقران:</p>
-                  <div
-                    onClick={copyCode}
-                    className="mx-auto inline-block cursor-pointer rounded-xl bg-slate-100 px-8 py-4 text-center text-2xl font-bold tracking-widest dark:bg-slate-800"
-                    title="اضغط للنسخ"
-                  >
+                  <div onClick={copyCode} className="mx-auto inline-block cursor-pointer rounded-xl bg-slate-100 px-8 py-4 text-center text-2xl font-bold tracking-widest dark:bg-slate-800" title="اضغط للنسخ">
                     {pairingCode}
                   </div>
                   <p className="mt-2 text-xs text-slate-400">اضغط على الرمز للنسخ</p>
@@ -245,14 +270,9 @@ export default function AdminSettings() {
             <div className="mt-6 border-t border-slate-200 pt-6 dark:border-slate-800">
               <h3 className="mb-3 text-sm font-semibold">إقران برقم الهاتف</h3>
               <div className="flex gap-2">
-                <input
-                  type="tel"
-                  dir="ltr"
-                  placeholder="ادخل رقم الهاتف (مثال: 01001234567)"
-                  value={pairPhone}
-                  onChange={(e) => setPairPhone(e.target.value)}
-                  className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800"
-                />
+                <input type="tel" dir="ltr" placeholder="ادخل رقم الهاتف (مثال: 01001234567)"
+                  value={pairPhone} onChange={(e) => setPairPhone(e.target.value)}
+                  className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
                 <button onClick={doPair} disabled={action === 'pairing'}
                   className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-50">
                   {action === 'pairing' ? 'جارٍ...' : 'إقران'}
@@ -264,31 +284,84 @@ export default function AdminSettings() {
           )}
         </div>
 
-        {/* Platform Info */}
-        <div className="rounded-2xl border border-slate-200 p-6 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="text-lg font-bold">معلومات المنصة</h2>
-          <div className="mt-4 space-y-3 text-sm">
-            <div className="flex justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
-              <span className="text-slate-500">اسم المنصة</span>
-              <span className="font-semibold">تعليم</span>
+        <div className="space-y-6">
+          {/* Fallback WhatsApp API */}
+          <div className="rounded-2xl border border-slate-200 p-6 dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="text-lg font-bold">🔁 منصة واتساب احتياطية (طوارئ)</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              عند فشل إرسال واتساب الأساسي، يتم استخدام رابط API بديل لإرسال الرسائل.
+            </p>
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1">رابط API البديل</label>
+              <div className="flex gap-2">
+                <input type="url" dir="ltr" placeholder="https://ai.zaadllc.com/"
+                  value={fallbackUrl} onChange={(e) => setFallbackUrl(e.target.value)}
+                  className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+                <button onClick={saveFallbackUrl}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white hover:bg-brand-700">
+                  حفظ
+                </button>
+              </div>
+              {fbSaved && <p className="mt-2 text-xs text-green-600">✅ تم الحفظ</p>}
             </div>
-            <div className="flex justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
-              <span className="text-slate-500">نظام التحقق</span>
-              <span className="font-semibold">OTP عبر واتساب</span>
+
+            <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
+              <h3 className="text-sm font-semibold">📨 اختبار الإرسال</h3>
+              <p className="mt-1 text-xs text-slate-400">أرسل رسالة تجريبية عبر API الطوارئ للتحقق من عمله</p>
+              <div className="mt-3 space-y-2">
+                <input type="tel" dir="ltr" placeholder="رقم الهاتف (مثال: 201000000000)"
+                  value={testPhone} onChange={(e) => setTestPhone(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+                <input type="text" placeholder="نص الرسالة"
+                  value={testMsg} onChange={(e) => setTestMsg(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+                <button onClick={testFallbackApi} disabled={testLoading || !testPhone || !testMsg}
+                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white disabled:opacity-50 hover:bg-emerald-700">
+                  {testLoading ? 'جارٍ الإرسال...' : 'إرسال تجريبي'}
+                </button>
+              </div>
+
+              {testResult && (
+                <div className={`mt-3 rounded-lg p-3 text-xs ${testResult.status === 'sent' ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-300'}`}>
+                  <p className="font-semibold">{testResult.status === 'sent' ? '✅ تم الإرسال بنجاح' : '❌ فشل الإرسال'}</p>
+                  <p className="mt-1">الحالة: {testResult.httpStatus || testResult.status}</p>
+                  {testResult.response && <p className="mt-1 truncate">الرد: {testResult.response}</p>}
+                  {testResult.message && <p className="mt-1">{testResult.message}</p>}
+                </div>
+              )}
             </div>
-            <div className="flex justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
-              <span className="text-slate-500">التسجيل</span>
-              <span className="font-semibold">الطلاب فقط</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
-              <span className="text-slate-500">إضافة المدرسين</span>
-              <span className="font-semibold">الأدمن فقط</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">حالة واتساب</span>
-              <span className={`font-semibold ${st === 'connected' ? 'text-green-600' : 'text-red-600'}`}>
-                {statusInfo.label}
-              </span>
+          </div>
+
+          {/* Platform Info */}
+          <div className="rounded-2xl border border-slate-200 p-6 dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="text-lg font-bold">معلومات المنصة</h2>
+            <div className="mt-4 space-y-3 text-sm">
+              <div className="flex justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
+                <span className="text-slate-500">اسم المنصة</span>
+                <span className="font-semibold">تعليم</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
+                <span className="text-slate-500">نظام التحقق</span>
+                <span className="font-semibold">OTP عبر واتساب</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
+                <span className="text-slate-500">التسجيل</span>
+                <span className="font-semibold">الطلاب فقط</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
+                <span className="text-slate-500">إضافة المدرسين</span>
+                <span className="font-semibold">الأدمن فقط</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
+                <span className="text-slate-500">حالة واتساب</span>
+                <span className={`font-semibold ${st === 'connected' ? 'text-green-600' : 'text-red-600'}`}>{statusInfo.label}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">API احتياطي</span>
+                <span className={`font-semibold ${fallbackUrl ? 'text-green-600' : 'text-red-400'}`}>
+                  {fallbackUrl ? 'مفعل' : 'غير مفعل'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
