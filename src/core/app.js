@@ -8,6 +8,8 @@ const config = require('../config');
 const { defaultLimiter } = require('../middleware/rateLimit');
 const logger = require('../config/logger');
 const { notFound, errorHandler } = require('./errorHandler');
+const path = require('path');
+const fs = require('fs');
 
 const mountRoutes = require('../modules');
 
@@ -37,6 +39,16 @@ app.get('/health', (_req, res) =>
 );
 
 app.use(`${config.app.apiPrefix}`, defaultLimiter, mountRoutes());
+
+// serve frontend static files (production single-port deployment via Passenger)
+const publicDir = path.resolve(__dirname, '../../domains/3lm.zaadllc.com/public_html');
+if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/socket')) return next();
+    res.sendFile(path.join(publicDir, 'index.html'), () => next());
+  });
+}
 
 app.use(notFound);
 app.use(errorHandler);
