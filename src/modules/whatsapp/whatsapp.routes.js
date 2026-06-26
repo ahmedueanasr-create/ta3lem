@@ -6,7 +6,7 @@ const { WhatsAppMessage } = require('../../models');
 const asyncHandler = require('../../utils/asyncHandler');
 const { body } = require('express-validator');
 const validate = require('../../middleware/validate');
-const { paginate, paginateResponse } = require('../../utils/paginate');
+const ROLES = require('../../utils/roles');
 
 const router = express.Router();
 router.use(auth);
@@ -17,7 +17,7 @@ router.get('/status', (_req, res) =>
 
 router.post(
   '/send',
-  checkRole('platform_admin', 'teachers_supervisor', 'student_supervisor', 'teacher'),
+  checkRole(ROLES.SUPER_ADMIN, 'platform_admin', 'teachers_supervisor', 'student_supervisor', 'teacher'),
   [body('phone').notEmpty(), body('message').notEmpty(), validate],
   asyncHandler(async (req, res) => {
     const result = await waService.send(req.body.phone, req.body.message);
@@ -27,7 +27,7 @@ router.post(
 
 router.post(
   '/broadcast',
-  checkRole('platform_admin'),
+  checkRole(ROLES.SUPER_ADMIN, 'platform_admin'),
   [body('phones').isArray({ min: 1 }), body('message').notEmpty(), validate],
   asyncHandler(async (req, res) => {
     const result = await waService.broadcast(req.body.phones, req.body.message);
@@ -37,7 +37,7 @@ router.post(
 
 router.get(
   '/messages',
-  checkRole('platform_admin', 'teachers_supervisor', 'student_supervisor'),
+  checkRole(ROLES.SUPER_ADMIN, 'platform_admin', 'teachers_supervisor', 'student_supervisor'),
   asyncHandler(async (req, res) => {
     const { limit, offset, page } = paginate(req);
     const where = {};
