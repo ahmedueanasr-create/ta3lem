@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ override: true });
 
 const env = (key, fallback = '') => process.env[key] ?? fallback;
 const bool = (key, fallback = false) => (process.env[key] === undefined ? fallback : process.env[key] === 'true');
