@@ -40,6 +40,12 @@ app.get('/health', (_req, res) =>
 
 app.use(`${config.app.apiPrefix}`, defaultLimiter, mountRoutes());
 
+// serve uploads (APK downloads, etc.)
+const storageDir = path.resolve(__dirname, '../../storage');
+if (fs.existsSync(storageDir)) {
+  app.use('/storage', express.static(storageDir));
+}
+
 // serve frontend static files (production single-port deployment via Passenger)
 const publicDir = path.resolve(__dirname, '../../../public_html');
 if (fs.existsSync(publicDir)) {
