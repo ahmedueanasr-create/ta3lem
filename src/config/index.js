@@ -35,7 +35,7 @@ module.exports = {
   jwt: {
     accessSecret: env('JWT_ACCESS_SECRET', 'access-secret'),
     refreshSecret: env('JWT_REFRESH_SECRET', 'refresh-secret'),
-    accessTtl: env('JWT_ACCESS_TTL', '15m'),
+    accessTtl: env('JWT_ACCESS_TTL', '1h'),
     refreshTtl: env('JWT_REFRESH_TTL', '7d'),
     issuer: env('JWT_ISSUER', 'ta3lem'),
   },
