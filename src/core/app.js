@@ -46,7 +46,10 @@ if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/socket')) return next();
-    res.sendFile(path.join(publicDir, 'index.html'), () => next());
+    if (req.path.includes('.')) return next();
+    res.sendFile(path.join(publicDir, 'index.html'), (err) => {
+      if (err) return next(err);
+    });
   });
 }
 
