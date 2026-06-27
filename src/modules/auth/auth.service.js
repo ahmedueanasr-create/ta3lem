@@ -96,20 +96,16 @@ class AuthService {
       logger.warn('Redis down, using in-memory OTP store');
     }
 
-    // Send OTP via WhatsApp
-    const phoneForWa = `2${user.phone}`; // Egyptian country code
+    // Send OTP via WhatsApp (fire-and-forget, don't block login)
+    const phoneForWa = `2${user.phone}`;
     const otpMessage = `رمز التحقق الخاص بك في منصة تعليم هو: ${otp}\n\nلا تشارك هذا الرمز مع أحد.\nينتهي خلال 5 دقائق.`;
-    const waResult = await waService.send(phoneForWa, otpMessage);
+    waService.send(phoneForWa, otpMessage).catch(() => {});
 
-    // Send OTP via email as fallback
-    try { await emailService.sendOtp(user.email, otp); } catch (e) { logger.warn('Email OTP send failed', { error: e.message }); }
+    // Send OTP via email as fallback (fire-and-forget)
+    emailService.sendOtp(user.email, otp).catch(() => {});
 
     // In dev mode, always return OTP for local testing
     const isDev = config.app.env === 'development' || config.app.env === 'local';
-    const devOtp = isDev ? otp : (waResult.status === 'queued' || waResult.status === 'failed' ? otp : null);
-    if (devOtp && isDev) {
-      logger.info(`Dev OTP (${waResult.status === 'failed' ? 'WA send failed' : 'dev mode'}): ${otp}`);
-    }
 
     // Issue a short-lived temp token for OTP verification
     const tempToken = JwtService.signAccess({
@@ -118,7 +114,7 @@ class AuthService {
       otp_pending: true,
     });
 
-    logger.info(`OTP sent for user ${user.id}`, { waStatus: waResult.status, devOtp });
+    if (isDev) logger.info(`Dev OTP: ${otp}`);
 
     return {
       tempToken,
@@ -192,13 +188,13 @@ class AuthService {
 
     const phoneForWa = `2${user.phone}`;
     const otpMessage = `رمز التحقق الجديد: ${otp}\n\nينتهي خلال 5 دقائق.`;
-    const waResult = await waService.send(phoneForWa, otpMessage);
+    waService.send(phoneForWa, otpMessage).catch(() => {});
 
-    // Send OTP via email as fallback
-    try { await emailService.sendOtp(user.email, otp); } catch (e) { logger.warn('Email OTP send failed', { error: e.message }); }
+    // Send OTP via email as fallback (fire-and-forget)
+    emailService.sendOtp(user.email, otp).catch(() => {});
 
     return {
-      devOtp: waResult.status === 'queued' ? otp : null,
+      devOtp: otp,
       phone: user.phone ? `*****${user.phone.slice(-4)}` : null,
     };
   }
