@@ -1,47 +1,433 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import Lenis from 'lenis';
-import HeroScene from '../components/landing/HeroScene';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
 
-const fadeUp = { initial: { opacity: 0, y: 50 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: '-80px' }, transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] } };
+const subjects = [
+  { name: 'الرياضيات', icon: '📐', desc: 'من الأساسيات إلى التفاضل والتكامل' },
+  { name: 'الفيزياء', icon: '⚛️', desc: 'القوانين الفيزيائية والتطبيقات العملية' },
+  { name: 'الكيمياء', icon: '🧪', desc: 'التفاعلات الكيميائية والمعادلات' },
+  { name: 'الأحياء', icon: '🧬', desc: 'علوم الحياة والجينات والخلية' },
+  { name: 'اللغة العربية', icon: '📝', desc: 'النحو والصرف والبلاغة' },
+  { name: 'اللغة الإنجليزية', icon: '🔤', desc: 'قواعد ومحادثة وكتابة أكاديمية' },
+];
 
-const SectionHeading = ({ badge, title, desc }) => (
-  <motion.div {...fadeUp} className="mb-16 text-center">
-    <span className="inline-block rounded-full border border-[#00e5ff]/30 bg-[#00e5ff]/10 px-5 py-1.5 text-sm text-[#00e5ff] backdrop-blur">{badge}</span>
-    <h2 className="mt-5 text-4xl font-bold text-white md:text-5xl">{title}</h2>
-    {desc && <p className="mx-auto mt-4 max-w-2xl text-lg text-[#b8c0cc]">{desc}</p>}
-  </motion.div>
-);
+const teachers = [
+  { name: 'أ. محمد أحمد', subject: 'الرياضيات', rating: 4.9, students: 3200, avatar: '🧑‍🏫' },
+  { name: 'أ. فاطمة علي', subject: 'الكيمياء', rating: 4.8, students: 2100, avatar: '👩‍🏫' },
+  { name: 'أ. خالد سعيد', subject: 'الفيزياء', rating: 4.7, students: 1800, avatar: '👨‍🏫' },
+  { name: 'أ. منى حسن', subject: 'الأحياء', rating: 4.9, students: 1500, avatar: '👩‍🔬' },
+  { name: 'أ. سارة محمود', subject: 'اللغة العربية', rating: 4.8, students: 2700, avatar: '👩‍🏫' },
+  { name: 'أ. عمر عبدالله', subject: 'اللغة الإنجليزية', rating: 4.6, students: 1900, avatar: '🧑‍🏫' },
+];
 
-const GlowButton = ({ children, to, href, primary = true, ...props }) => {
-  const cls = `group relative inline-flex items-center gap-2 overflow-hidden rounded-xl px-8 py-3.5 font-bold transition-all duration-300 ${primary ? 'bg-[#00e5ff] text-[#0a0a0a] hover:shadow-[0_0_30px_rgba(0,229,255,0.5)]' : 'border border-white/20 text-white hover:border-white/40 hover:bg-white/5'}`;
-  const content = (
-    <>
-      <span className="relative z-10 flex items-center gap-2">{children}</span>
-      {primary && <span className="absolute inset-0 animate-pulse rounded-xl bg-[#00e5ff]/20" style={{ animationDuration: '2s' }} />}
-    </>
+const testimonials = [
+  { name: 'أحمد محمد', grade: 'الثالث الثانوي', text: 'المنصة غيّرت طريقة مذاكرتي تماماً. الحصص المباشرة والتسجيلات ساعدتني أفهم أصعب الأجزاء.', rating: 5 },
+  { name: 'سارة علي', grade: 'الثاني الثانوي', text: 'نظام المحفظة ممتاز، بشحن رصيدي وأدخل الحصص بسهولة. المدرسون محترفون جداً.', rating: 5 },
+  { name: 'خالد إبراهيم', grade: 'الأول الثانوي', text: 'الاختبارات الإلكترونية والشهادات حافز قوي. كل حاجة في مكان واحد.', rating: 4 },
+  { name: 'نورة أحمد', grade: 'الثالث الثانوي', text: 'المساعد الذكي بالذكاء الاصطناعي شيء خرافي! بيفهم أسئلتي وبيشرحلي خطوة بخطوة.', rating: 5 },
+  { name: 'يوسف كريم', grade: 'الثاني الثانوي', text: 'المدرسين متفهمين ومحترفين. بحس أن كل حصة مع مدرس خصوصي.', rating: 4 },
+];
+
+const plans = [
+  { name: 'مجاني', price: '0', features: ['حصتان مسجلتان', 'مشاركة الملفات', 'دعم محدود'] },
+  { name: 'الاحترافي', price: '199', featured: true, features: ['حصص مباشرة غير محدودة', 'تسجيلات كاملة', 'واجبات واختبارات', 'دعم 24/7'] },
+  { name: 'المدارس', price: 'اتصل بنا', features: ['إدارة فصول متعددة', 'تقارير متقدمة', 'تكامل واتساب', 'مدرسين مخصصين'] },
+];
+
+const faqs = [
+  { q: 'هل أحتاج لتثبيت برامج؟', a: 'لا، المنصة تعمل بالكامل على المتصفح. كل ما تحتاجه هو اتصال بالإنترنت.' },
+  { q: 'كيف أدفع للحصص؟', a: 'تشحن رصيدك في المحفظة الإلكترونية ويُخصم تلقائياً عند دخول الحصة. يمكنك الشحن عبر فودافون كاش أو بطاقات الائتمان.' },
+  { q: 'هل توجد تسجيلات للحصص؟', a: 'نعم، يتم تسجيل كل حصة تلقائياً مع الشات والحضور، وتتوفر للمشاهدة في أي وقت لاحقاً.' },
+];
+
+function StarRating({ count }) {
+  return <span className="text-yellow-400">{'★'.repeat(count)}{'☆'.repeat(5 - count)}</span>;
+}
+
+export default function Landing() {
+  const sectionRef = useRef(null);
+
+  return (
+    <div>
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#0f172a] via-[#1e3a8a] to-[#0891b2] py-20 md:py-32">
+        <div className="pointer-events-none absolute inset-0 opacity-20">
+          <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute -bottom-20 right-10 h-96 w-96 rounded-full bg-cyan-400/20 blur-3xl" />
+          <div className="absolute left-1/3 top-1/3 h-48 w-48 rounded-full bg-blue-400/10 blur-2xl" />
+        </div>
+        <div className="relative mx-auto max-w-7xl px-4 text-center">
+          <span className="inline-block animate-fade-up rounded-full border border-white/20 bg-white/10 px-4 py-1 text-sm text-blue-200 backdrop-blur">
+            🚀 المنصة التعليمية الأولى في مصر
+          </span>
+          <h1 className="animate-fade-up mt-6 text-4xl font-bold leading-tight text-white md:text-6xl lg:text-7xl" style={{ animationDelay: '0.1s' }}>
+            تعلم بثقة مع
+            <br />
+            <span className="bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">أفضل المدرسين</span>
+          </h1>
+          <p className="animate-fade-up mx-auto mt-6 max-w-2xl text-lg text-blue-200" style={{ animationDelay: '0.2s' }}>
+            منصة تعليمية متكاملة تجمع الحصص المباشرة، التسجيلات، الواجبات، 
+            الاختبارات، والمحفظة الذكية في مكان واحد. تعلم أينما كنت، في أي وقت.
+          </p>
+          <div className="animate-fade-up mt-10 flex flex-wrap justify-center gap-4" style={{ animationDelay: '0.3s' }}>
+            <Link
+              to="/register"
+              className="group inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 font-bold text-[#1e3a8a] shadow-lg transition hover:scale-105 hover:shadow-xl"
+            >
+              ابدأ الآن مجاناً
+              <span className="transition group-hover:translate-x-1">←</span>
+            </Link>
+            <a
+              href="#features"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-8 py-3.5 font-bold text-white transition hover:bg-white/10"
+            >
+              استكشف المميزات
+              <span>↓</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="relative -mt-12 z-10 mx-auto max-w-6xl grid grid-cols-2 gap-4 px-4 md:grid-cols-4">
+        {[
+          { label: 'طالب', end: 125000, suffix: '+', icon: '👨‍🎓' },
+          { label: 'مدرّس', end: 3200, suffix: '+', icon: '👨‍🏫' },
+          { label: 'حصة مباشرة', end: 87000, suffix: '+', icon: '🎥' },
+          { label: 'تقييم', end: 98, suffix: '%', icon: '⭐' },
+        ].map((s) => (
+          <div key={s.label} className="group rounded-2xl border border-slate-200/60 bg-white p-6 text-center shadow-lg transition hover:shadow-xl dark:border-slate-700/60 dark:bg-slate-900">
+            <span className="text-2xl">{s.icon}</span>
+            <StatCounter end={s.end} suffix={s.suffix} />
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{s.label}</p>
+          </div>
+        ))}
+      </section>
+
+      {/* Features */}
+      <section id="features" className="mx-auto max-w-7xl px-4 py-20">
+        <div className="text-center">
+          <span className="inline-block rounded-full bg-brand-100 px-4 py-1 text-sm font-semibold text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">✨ المميزات</span>
+          <h2 className="mt-4 text-3xl font-bold md:text-4xl">لماذا تختار تعليم؟</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-slate-500 dark:text-slate-400">كل ما تحتاجه في رحلتك التعليمية في مكان واحد</p>
+        </div>
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {[
+            { t: 'بث مباشر احترافي', d: 'فيديو عالي الجودة، مشاركة شاشة، سبورة تفاعلية، رفع اليد، ودردشة لحظية.', i: '🎥' },
+            { t: 'محفظة ذكية', d: 'شحن رصيد وخصم تلقائي عند دخول الحصة مع سجل عمليات كامل وشفاف.', i: '💳' },
+            { t: 'تسجيل تلقائي', d: 'كل حصة تُسجّل وتُحفظ مع الشات والحضور لمشاهدتها في أي وقت.', i: '🎬' },
+            { t: 'تنبيهات وواتساب', d: 'تذكير قبل الحصص عبر المنصة وواتساب والإشعارات الفورية.', i: '🔔' },
+            { t: 'اختبارات وواجبات', d: 'أسئلة ذكية مع تصحيح تلقائي وشهادات إتمام معتمدة.', i: '📝' },
+            { t: 'تقارير أداء', d: 'تقارير مفصلة للحضور والغياب والأرباح والإيرادات.', i: '📊' },
+          ].map((f) => (
+            <div key={f.t} className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-1 hover:shadow-xl dark:border-slate-700 dark:bg-slate-900">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand-100 text-2xl dark:bg-brand-900/50">{f.i}</div>
+              <h3 className="mt-5 text-xl font-bold">{f.t}</h3>
+              <p className="mt-2 leading-relaxed text-slate-500 dark:text-slate-400">{f.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Subjects Slider */}
+      <section id="subjects" className="bg-gradient-to-b from-slate-50 to-white py-20 dark:from-slate-900 dark:to-slate-950">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="text-center">
+            <span className="inline-block rounded-full bg-purple-100 px-4 py-1 text-sm font-semibold text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">📚 المواد</span>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">المواد التعليمية</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-slate-500 dark:text-slate-400">اختر من بين مجموعة واسعة من المواد الدراسية</p>
+          </div>
+          <div className="mt-12">
+            <Swiper
+              modules={[Autoplay, Pagination]}
+              spaceBetween={20}
+              slidesPerView={2}
+              autoplay={{ delay: 3000, disableOnInteraction: false }}
+              pagination={{ clickable: true }}
+              breakpoints={{
+                640: { slidesPerView: 3 },
+                768: { slidesPerView: 4 },
+                1024: { slidesPerView: 6 },
+              }}
+            >
+              {subjects.map((s) => (
+                <SwiperSlide key={s.name}>
+                  <div className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-6 text-center transition hover:-translate-y-2 hover:shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-100 to-blue-100 text-3xl transition group-hover:scale-110 dark:from-brand-900/30 dark:to-blue-900/30">
+                      {s.icon}
+                    </div>
+                    <p className="mt-4 font-bold">{s.name}</p>
+                    <p className="mt-1 text-xs text-slate-400">{s.desc}</p>
+                  </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        </div>
+      </section>
+
+      {/* Teachers Slider */}
+      <section className="mx-auto max-w-7xl px-4 py-20">
+        <div className="text-center">
+          <span className="inline-block rounded-full bg-orange-100 px-4 py-1 text-sm font-semibold text-orange-700 dark:bg-orange-900/50 dark:text-orange-300">👨‍🏫 المدرسون</span>
+          <h2 className="mt-4 text-3xl font-bold md:text-4xl">مدرسون متميزون</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-slate-500 dark:text-slate-400">تعلم على أيدي نخبة من أفضل المدرسين في مصر</p>
+        </div>
+        <div className="mt-12">
+          <Swiper
+            modules={[Autoplay, Pagination]}
+            spaceBetween={24}
+            slidesPerView={1}
+            autoplay={{ delay: 4000, disableOnInteraction: false }}
+            pagination={{ clickable: true }}
+            breakpoints={{
+              640: { slidesPerView: 2 },
+              1024: { slidesPerView: 4 },
+            }}
+          >
+            {teachers.map((t) => (
+              <SwiperSlide key={t.name}>
+                <div className="group rounded-2xl border border-slate-200 bg-white p-6 text-center transition hover:-translate-y-2 hover:shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-brand-100 to-orange-100 text-4xl transition group-hover:scale-110 dark:from-brand-900/30 dark:to-orange-900/30">
+                    {t.avatar}
+                  </div>
+                  <h3 className="mt-4 text-lg font-bold">{t.name}</h3>
+                  <p className="text-sm text-brand-600 dark:text-brand-400">{t.subject}</p>
+                  <div className="mt-3 flex items-center justify-center gap-3 text-sm">
+                    <span className="text-yellow-500">★ {t.rating}</span>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-slate-500">{t.students.toLocaleString('ar-EG')} طالب</span>
+                  </div>
+                  <button className="mt-4 w-full rounded-lg bg-brand-600 py-2 text-sm font-semibold text-white opacity-0 transition group-hover:opacity-100">
+                    احجز حصة
+                  </button>
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div>
+      </section>
+
+      {/* AI Assistant */}
+      <section className="bg-gradient-to-br from-indigo-50 to-purple-50 py-20 dark:from-indigo-950/30 dark:to-purple-950/30">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="grid items-center gap-12 md:grid-cols-2">
+            <div>
+              <span className="inline-block rounded-full bg-brand-100 px-4 py-1.5 text-sm font-semibold text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">🧠 الذكاء الاصطناعي</span>
+              <h2 className="mt-4 text-3xl font-bold md:text-4xl">مساعد تعليمي ذكي 24/7</h2>
+              <p className="mt-4 text-lg leading-relaxed text-slate-600 dark:text-slate-400">
+                المدرس الخصوصي الافتراضي المدعوم بالذكاء الاصطناعي يجيب على أسئلتك، 
+                يشرح الدروس، ويحل الواجبات في أي وقت.
+              </p>
+              <ul className="mt-6 space-y-3">
+                {[
+                  'شرح الدروس خطوة بخطوة',
+                  'توليد اختبارات ومراجعات ذكية',
+                  'تلخيص الحصص تلقائياً',
+                  'خطط دراسة مخصصة',
+                ].map((f) => (
+                  <li key={f} className="flex items-center gap-3">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-100 text-sm text-green-600 dark:bg-green-900/50 dark:text-green-400">✓</span>
+                    <span className="font-medium">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/register"
+                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 font-semibold text-white shadow-lg transition hover:bg-brand-700 hover:shadow-xl"
+              >
+                جرب المساعد الذكي مجاناً
+                <span>←</span>
+              </Link>
+            </div>
+            <div className="relative">
+              <div className="rounded-3xl border border-white/30 bg-white/80 p-6 shadow-2xl backdrop-blur dark:bg-slate-800/80">
+                <div className="flex items-center gap-3 border-b border-slate-200 pb-4 dark:border-slate-700">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-lg dark:bg-brand-900/50">🧠</div>
+                  <div>
+                    <p className="font-bold text-sm">المساعد الذكي</p>
+                    <p className="text-xs text-green-500">متصل</p>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-4">
+                  <div className="rounded-2xl rounded-bl-md bg-brand-600 px-4 py-3 text-sm text-white shadow">
+                    اشرح لي قانون نيوتن الثاني مع مثال تطبيقي
+                  </div>
+                  <div className="rounded-2xl rounded-br-md border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    قانون نيوتن الثاني: القوة = الكتلة × التسارع (F = ma). 
+                    مثلاً، إذا دفعت سيارة كتلتها 1000 كجم بتسارع 2 م/ث²، 
+                    فالقوة المطلوبة = 1000 × 2 = 2000 نيوتن.
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <div className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-400 dark:border-slate-700 dark:bg-slate-900">
+                    اكتب سؤالك هنا...
+                  </div>
+                  <div className="flex cursor-pointer items-center gap-2 rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700">
+                    إرسال
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="mx-auto max-w-7xl px-4 py-20">
+        <div className="text-center">
+          <span className="inline-block rounded-full bg-green-100 px-4 py-1 text-sm font-semibold text-green-700 dark:bg-green-900/50 dark:text-green-300">💰 الأسعار</span>
+          <h2 className="mt-4 text-3xl font-bold md:text-4xl">خطط الأسعار</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-slate-500 dark:text-slate-400">اختر الخطة المناسبة لك وابدأ رحلتك التعليمية</p>
+        </div>
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {plans.map((p) => (
+            <div
+              key={p.name}
+              className={`group relative rounded-2xl border-2 p-8 transition hover:-translate-y-1 hover:shadow-xl ${
+                p.featured
+                  ? 'border-brand-600 bg-white shadow-lg dark:bg-slate-900'
+                  : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'
+              }`}
+            >
+              {p.featured && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-4 py-1 text-xs font-bold text-white">
+                  الأكثر طلباً
+                </span>
+              )}
+              <h3 className="text-xl font-bold">{p.name}</h3>
+              <p className="mt-4">
+                <span className="text-4xl font-extrabold">{p.price}</span>
+                {p.price !== 'اتصل بنا' && <span className="text-base text-slate-500"> ج.م/شهر</span>}
+              </p>
+              <ul className="mt-6 space-y-3">
+                {p.features.map((f) => (
+                  <li key={f} className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-xs text-green-600 dark:bg-green-900/50 dark:text-green-400">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <button
+                className={`mt-8 w-full rounded-xl py-3 font-bold transition ${
+                  p.featured
+                    ? 'bg-brand-600 text-white shadow-lg hover:bg-brand-700 hover:shadow-xl'
+                    : 'border border-brand-600 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20'
+                }`}
+              >
+                {p.price === 'اتصل بنا' ? 'تواصل معنا' : 'ابدأ الآن'}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Testimonials Slider */}
+      <section className="bg-gradient-to-b from-slate-50 to-white py-20 dark:from-slate-900 dark:to-slate-950">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="text-center">
+            <span className="inline-block rounded-full bg-yellow-100 px-4 py-1 text-sm font-semibold text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300">💬 آراء الطلاب</span>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">ماذا يقول طلابنا؟</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-slate-500 dark:text-slate-400">آلاف الطلاب يثقون في تعليم لتطوير مستواهم الدراسي</p>
+          </div>
+          <div className="relative mt-12">
+            <Swiper
+              modules={[Autoplay, Pagination]}
+              spaceBetween={24}
+              slidesPerView={1}
+              autoplay={{ delay: 5000, disableOnInteraction: false }}
+              pagination={{ clickable: true }}
+              breakpoints={{
+                640: { slidesPerView: 2 },
+                1024: { slidesPerView: 3 },
+              }}
+            >
+              {testimonials.map((t) => (
+                <SwiperSlide key={t.name}>
+                  <div className="relative rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-700 dark:bg-slate-900">
+                    <div className="absolute -top-3 -right-3 text-3xl opacity-20">"</div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brand-100 to-yellow-100 text-2xl dark:from-brand-900/30 dark:to-yellow-900/30">
+                        {t.name[0]}
+                      </div>
+                      <div>
+                        <p className="font-bold">{t.name}</p>
+                        <p className="text-xs text-slate-500">{t.grade}</p>
+                      </div>
+                    </div>
+                    <StarRating count={t.rating} />
+                    <p className="mt-4 leading-relaxed text-slate-600 dark:text-slate-400">{t.text}</p>
+                  </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#1e3a8a] via-[#2563eb] to-[#06b6d4] py-16 text-center text-white">
+        <div className="pointer-events-none absolute inset-0 opacity-20">
+          <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute -bottom-20 left-10 h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl" />
+        </div>
+        <div className="relative mx-auto max-w-3xl px-4">
+          <h2 className="text-3xl font-bold md:text-4xl">جاهز تبدأ رحلتك التعليمية؟</h2>
+          <p className="mt-4 text-lg text-blue-200">انضم لآلاف الطلاب الذين يتعلمون بثقة على تعليم</p>
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 font-bold text-[#1e3a8a] shadow-lg transition hover:scale-105 hover:shadow-xl"
+            >
+              سجّل مجاناً الآن
+              <span>←</span>
+            </Link>
+            <a
+              href="#faq"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-8 py-3.5 font-bold text-white transition hover:bg-white/10"
+            >
+              تعرف أكثر
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="mx-auto max-w-3xl px-4 py-20">
+        <div className="text-center">
+          <span className="inline-block rounded-full bg-blue-100 px-4 py-1 text-sm font-semibold text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">❓ الأسئلة</span>
+          <h2 className="mt-4 text-3xl font-bold">الأسئلة الشائعة</h2>
+        </div>
+        <div className="mt-10 space-y-4">
+          {faqs.map((f) => (
+            <details key={f.q} className="group rounded-2xl border border-slate-200 bg-white p-5 transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+              <summary className="cursor-pointer text-lg font-semibold transition group-open:text-brand-600">{f.q}</summary>
+              <p className="mt-4 leading-relaxed text-slate-600 dark:text-slate-400">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+    </div>
   );
-  if (to) return <Link to={to} className={cls} {...props}>{content}</Link>;
-  return <a href={href} className={cls} {...props}>{content}</a>;
-};
+}
 
-/* ------------------------------------------------------------------ */
-/*  Counter                                                            */
-/* ------------------------------------------------------------------ */
-function Counter({ end, suffix = '', duration = 2000 }) {
+function StatCounter({ end, suffix = '', duration = 1500 }) {
   const [val, setVal] = useState(0);
   const ref = useRef(null);
   const started = useRef(false);
 
   useEffect(() => {
     const obs = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting && !started.current) {
+      (entries) => {
+        if (entries[0].isIntersecting && !started.current) {
           started.current = true;
-          const startT = performance.now();
+          const start = performance.now();
           const tick = (now) => {
-            const p = Math.min((now - startT) / duration, 1);
+            const p = Math.min((now - start) / duration, 1);
             setVal(Math.floor(p * end));
             if (p < 1) requestAnimationFrame(tick);
           };
@@ -54,413 +440,9 @@ function Counter({ end, suffix = '', duration = 2000 }) {
     return () => obs.disconnect();
   }, [end, duration]);
 
-  return <span ref={ref} className="text-5xl font-bold text-white">{val.toLocaleString()}{suffix}</span>;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Glass Card                                                         */
-/* ------------------------------------------------------------------ */
-function GlassCard({ icon, title, desc, index = 0, hover3d = false }) {
-  const cardRef = useRef(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-
-  const handleMouse = useCallback((e) => {
-    if (!hover3d || !cardRef.current) return;
-    const r = cardRef.current.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5;
-    const y = (e.clientY - r.top) / r.height - 0.5;
-    setTilt({ x: -y * 15, y: x * 15 });
-  }, [hover3d]);
-
-  const resetTilt = () => setTilt({ x: 0, y: 0 });
-
   return (
-    <motion.div
-      ref={cardRef}
-      initial={{ opacity: 0, y: 60 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6, delay: index * 0.15, ease: 'easeOut' }}
-      onMouseMove={handleMouse}
-      onMouseLeave={resetTilt}
-      style={{ transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)` }}
-      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-8 backdrop-blur-xl transition-all duration-500 hover:border-[#00e5ff]/30 hover:shadow-[0_0_40px_rgba(0,229,255,0.15)]"
-    >
-      <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-[#00e5ff]/5 blur-3xl transition-all duration-500 group-hover:bg-[#00e5ff]/10" />
-      <div className="relative z-10">
-        <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#00e5ff]/10 text-3xl">{icon}</span>
-        <h3 className="mt-6 text-2xl font-bold text-white">{title}</h3>
-        <div className="my-4 h-px w-12 bg-gradient-to-r from-[#00e5ff] to-transparent" />
-        <p className="text-[#b8c0cc] leading-relaxed">{desc}</p>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  DATA                                                               */
-/* ------------------------------------------------------------------ */
-const features = [
-  { icon: '📚', title: 'Smart Digital Library', desc: 'Access thousands of digital books, research papers, and interactive learning materials from anywhere in the world.' },
-  { icon: '🎓', title: 'Interactive Learning', desc: 'Engage with live virtual classrooms, real-time quizzes, collaborative whiteboards, and hands-on lab simulations.' },
-  { icon: '🤖', title: 'AI-Powered Education', desc: 'Personalized learning paths, intelligent tutoring, and adaptive assessments powered by advanced artificial intelligence.' },
-];
-
-const subjects = [
-  { name: 'Mathematics', icon: '📐', color: '#00e5ff', desc: 'From algebra to calculus' },
-  { name: 'Science', icon: '🔬', color: '#3b82f6', desc: 'Explore the natural world' },
-  { name: 'Physics', icon: '⚛️', color: '#6ee7ff', desc: 'Laws of the universe' },
-  { name: 'Chemistry', icon: '🧪', color: '#00e5ff', desc: 'Matter and its reactions' },
-  { name: 'Biology', icon: '🧬', color: '#3b82f6', desc: 'Life sciences decoded' },
-  { name: 'CS', icon: '💻', color: '#6ee7ff', desc: 'Code & innovation' },
-  { name: 'History', icon: '📜', color: '#00e5ff', desc: 'Stories of our past' },
-  { name: 'Geography', icon: '🌍', color: '#3b82f6', desc: 'Our world explored' },
-  { name: 'Languages', icon: '🌐', color: '#6ee7ff', desc: 'Connect globally' },
-];
-
-const stats = [
-  { end: 25000, suffix: '+', label: 'Students' },
-  { end: 1200, suffix: '+', label: 'Teachers' },
-  { end: 98, suffix: '%', label: 'Success Rate' },
-  { end: 150, suffix: '+', label: 'Courses' },
-];
-
-const testimonials = [
-  { name: 'Sarah Johnson', role: 'Student', text: 'Future Academy transformed my learning experience. The interactive platform and AI tutor helped me improve my grades significantly.' },
-  { name: 'Dr. Ahmed Hassan', role: 'Physics Teacher', text: 'The teaching tools here are exceptional. I can create immersive lessons that truly engage my students.' },
-  { name: 'Maria Lopez', role: 'Parent', text: 'My children love learning here. The progress tracking and parent portal keep me informed every step of the way.' },
-  { name: 'Prof. James Chen', role: 'Computer Science', text: 'Teaching at Future Academy feels like being part of a revolution in education. The technology is world-class.' },
-  { name: 'Emma Wilson', role: 'Student', text: 'The virtual labs and interactive 3D models make complex subjects so much easier to understand.' },
-  { name: 'Dr. Layla Mahmoud', role: 'Biology Instructor', text: 'I can bring science to life with the tools available here. My students are more engaged than ever before.' },
-];
-
-const libraryBooks = [
-  { title: 'Quantum Physics', author: 'Dr. Michio Kaku', image: '📖' },
-  { title: 'Calculus Made Easy', author: 'Silvanus Thompson', image: '📘' },
-  { title: 'The Art of Coding', author: 'Tech Academy', image: '📕' },
-  { title: 'Molecular Biology', author: 'Dr. Jane Watson', image: '📗' },
-  { title: 'World History', author: 'Prof. David Miller', image: '📙' },
-  { title: 'Chemistry Essentials', author: 'Dr. Lisa Park', image: '📓' },
-];
-
-/* ------------------------------------------------------------------ */
-/*  LANDING PAGE                                                       */
-/* ------------------------------------------------------------------ */
-export default function Landing() {
-  const [scrollY, setScrollY] = useState(0);
-  const heroRef = useRef(null);
-  const { scrollYProgress } = useScroll();
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
-  const heroScale = useTransform(scrollYProgress, [0, 0.15], [1, 0.95]);
-
-  useEffect(() => {
-    const lenis = new Lenis({ duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), orientation: 'vertical', smoothWheel: true });
-    let rafId;
-    const onRaf = (time) => { lenis.raf(time); setScrollY(lenis.scroll); rafId = requestAnimationFrame(onRaf); };
-    rafId = requestAnimationFrame(onRaf);
-    return () => { cancelAnimationFrame(rafId); lenis.destroy(); };
-  }, []);
-
-  return (
-    <div className="relative bg-[#0a0a0a] text-white">
-
-      {/* ======================== HERO ======================== */}
-      <section ref={heroRef} className="relative flex h-screen min-h-[700px] items-center justify-center overflow-hidden">
-        <HeroScene scrollY={scrollY} />
-
-        <motion.div style={{ opacity: heroOpacity, scale: heroScale }} className="absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.3 }}>
-            <span className="inline-block rounded-full border border-[#00e5ff]/30 bg-[#00e5ff]/10 px-5 py-1.5 text-sm text-[#00e5ff] backdrop-blur">
-              ✦ Future Academy — Est. 2024
-            </span>
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.5 }}
-            className="mt-8 max-w-5xl text-5xl font-bold leading-tight md:text-7xl lg:text-8xl"
-          >
-            The Future of{' '}
-            <span className="bg-gradient-to-r from-[#00e5ff] via-[#3b82f6] to-[#6ee7ff] bg-clip-text text-transparent">
-              Learning
-            </span>{' '}
-            Begins Here.
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.7 }}
-            className="mt-6 max-w-2xl text-lg text-[#b8c0cc] md:text-xl"
-          >
-            Inspiring students through innovation, creativity, and world-class education.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.9 }}
-            className="mt-10 flex flex-wrap justify-center gap-4"
-          >
-            <GlowButton to="/register">Explore Courses &rarr;</GlowButton>
-            <GlowButton primary={false} href="#features">Virtual Campus Tour</GlowButton>
-          </motion.div>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1.5, delay: 1.2 }}
-            className="mt-8 text-sm text-[#b8c0cc]/60"
-          >
-            Trusted by Thousands of Students, Teachers, and Parents.
-          </motion.p>
-
-          {/* Scroll indicator */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
-            className="absolute bottom-8 left-1/2 -translate-x-1/2"
-          >
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="flex flex-col items-center gap-2"
-            >
-              <span className="text-xs text-[#b8c0cc]/40">Scroll to explore</span>
-              <div className="h-8 w-[1px] bg-gradient-to-b from-[#00e5ff] to-transparent" />
-            </motion.div>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ======================== STATS ======================== */}
-      <section className="relative z-10 -mt-16 mx-auto max-w-6xl px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="grid grid-cols-2 gap-4 rounded-2xl border border-white/10 bg-[#111111]/80 p-8 backdrop-blur-xl md:grid-cols-4"
-        >
-          {stats.map((s) => (
-            <div key={s.label} className="text-center">
-              <Counter end={s.end} suffix={s.suffix} />
-              <p className="mt-2 text-sm text-[#b8c0cc]">{s.label}</p>
-            </div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* ======================== FEATURES ======================== */}
-      <section id="features" className="mx-auto max-w-7xl px-4 py-32">
-        <SectionHeading badge="✦ Features" title="Academic Excellence Reimagined" desc="Discover a new era of education with cutting-edge tools and personalized learning experiences." />
-        <div className="grid gap-8 md:grid-cols-3">
-          {features.map((f, i) => (
-            <GlassCard key={f.title} {...f} index={i} hover3d />
-          ))}
-        </div>
-      </section>
-
-      {/* ======================== SUBJECTS ======================== */}
-      <section className="overflow-hidden py-24">
-        <SectionHeading badge="📚 Subjects" title="Explore Our Subjects" desc="Dive into a world of knowledge across multiple disciplines." />
-        <div className="relative mt-12">
-          <div className="flex gap-6 px-4" style={{ animation: 'scrollSubjects 40s linear infinite' }}>
-            {[...subjects, ...subjects].map((s, i) => (
-              <div
-                key={i}
-                className="group flex-shrink-0 w-56 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center backdrop-blur transition-all duration-500 hover:border-[#00e5ff]/30 hover:shadow-[0_0_30px_rgba(0,229,255,0.1)]"
-              >
-                <span className="text-5xl">{s.icon}</span>
-                <h3 className="mt-4 text-lg font-bold text-white">{s.name}</h3>
-                <p className="mt-1 text-sm text-[#b8c0cc]">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <style>{`
-          @keyframes scrollSubjects {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-        `}</style>
-      </section>
-
-      {/* ======================== LIBRARY ======================== */}
-      <section className="mx-auto max-w-7xl px-4 py-32">
-        <SectionHeading badge="📖 Digital Library" title="Explore Our Library" desc="A vast collection of knowledge at your fingertips." />
-        <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-6">
-          {libraryBooks.map((book, i) => (
-            <motion.div
-              key={book.title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              whileHover={{ y: -6, rotateY: -5 }}
-              className="group cursor-pointer rounded-xl border border-white/10 bg-white/[0.03] p-5 text-center backdrop-blur transition-all duration-300 hover:border-[#00e5ff]/30 hover:shadow-[0_0_25px_rgba(0,229,255,0.1)]"
-            >
-              <span className="text-5xl">{book.image}</span>
-              <h3 className="mt-3 text-sm font-bold text-white">{book.title}</h3>
-              <p className="mt-1 text-xs text-[#b8c0cc]">{book.author}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* ======================== TESTIMONIALS ======================== */}
-      <section className="mx-auto max-w-7xl px-4 py-32">
-        <SectionHeading badge="💬 Testimonials" title="What Our Community Says" desc="Hear from students, teachers, and parents around the world." />
-        <div className="relative overflow-hidden py-4">
-          <div className="flex gap-6" style={{ animation: 'scrollTestimonials 30s linear infinite' }}>
-            {[...testimonials, ...testimonials].map((t, i) => (
-              <div
-                key={i}
-                className="flex-shrink-0 w-80 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#00e5ff]/20 text-sm font-bold text-[#00e5ff]">
-                    {t.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white">{t.name}</p>
-                    <p className="text-xs text-[#b8c0cc]">{t.role}</p>
-                  </div>
-                </div>
-                <p className="mt-4 text-sm leading-relaxed text-[#b8c0cc]">"{t.text}"</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <style>{`
-          @keyframes scrollTestimonials {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-        `}</style>
-      </section>
-
-      {/* ======================== GALLERY ======================== */}
-      <section className="mx-auto max-w-7xl px-4 py-24">
-        <SectionHeading badge="🏛️ Campus" title="Our Virtual Campus" />
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            { label: 'Digital Library', emoji: '📚' },
-            { label: 'Innovation Lab', emoji: '🔬' },
-            { label: 'Virtual Classrooms', emoji: '💻' },
-            { label: 'AI Learning Studio', emoji: '🤖' },
-            { label: 'Science Pavilion', emoji: '🧪' },
-            { label: 'Global Lecture Hall', emoji: '🌍' },
-          ].map((item, i) => (
-            <motion.div
-              key={item.label}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              whileHover={{ scale: 1.03 }}
-              className="group relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-8 text-center backdrop-blur transition-all duration-500 hover:border-[#00e5ff]/30 hover:shadow-[0_0_30px_rgba(0,229,255,0.1)]"
-            >
-              <span className="text-5xl">{item.emoji}</span>
-              <h3 className="mt-4 text-lg font-bold text-white">{item.label}</h3>
-              <div className="mx-auto mt-3 h-px w-12 bg-gradient-to-r from-transparent via-[#00e5ff]/50 to-transparent" />
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* ======================== CTA ======================== */}
-      <section className="relative overflow-hidden py-32 text-center">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,229,255,0.08)_0%,transparent_60%)]" />
-        <div className="absolute inset-0">
-          {[...Array(20)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full bg-[#00e5ff]/10"
-              style={{
-                width: Math.random() * 4 + 2,
-                height: Math.random() * 4 + 2,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, -30, 0],
-                opacity: [0, 0.8, 0],
-              }}
-              transition={{
-                duration: Math.random() * 3 + 2,
-                repeat: Infinity,
-                delay: Math.random() * 2,
-              }}
-            />
-          ))}
-        </div>
-        <div className="relative z-10 mx-auto max-w-4xl px-4">
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-5xl font-bold leading-tight md:text-6xl"
-          >
-            Start Your{' '}
-            <span className="bg-gradient-to-r from-[#00e5ff] to-[#3b82f6] bg-clip-text text-transparent">
-              Learning Journey
-            </span>{' '}
-            Today
-          </motion.h2>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="mt-10"
-          >
-            <GlowButton to="/register">Enroll Now &rarr;</GlowButton>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ======================== FOOTER ======================== */}
-      <footer className="border-t border-white/10 px-4 py-16">
-        <div className="mx-auto max-w-7xl">
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-[#00e5ff]/50 to-transparent" />
-          <div className="mt-12 grid gap-8 md:grid-cols-4">
-            <div>
-              <h3 className="text-xl font-bold text-white">
-                <span className="text-[#00e5ff]">✦</span> Future Academy
-              </h3>
-              <p className="mt-3 text-sm text-[#b8c0cc]">Shaping tomorrow's leaders through innovation and excellence in education.</p>
-            </div>
-            {[
-              { title: 'Quick Links', items: ['Home', 'Courses', 'Library', 'About'] },
-              { title: 'Admissions', items: ['Apply Now', 'Tuition', 'Scholarships', 'FAQ'] },
-              { title: 'Connect', items: ['Contact', 'Support', 'Careers', 'Blog'] },
-            ].map((col) => (
-              <div key={col.title}>
-                <h4 className="mb-4 text-sm font-semibold text-[#b8c0cc] uppercase tracking-wider">{col.title}</h4>
-                <ul className="space-y-2">
-                  {col.items.map((item) => (
-                    <li key={item}>
-                      <a href="#" className="text-sm text-white/60 transition hover:text-[#00e5ff]">{item}</a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-white/5 pt-8 text-sm text-[#b8c0cc]/50">
-            <p>© {new Date().getFullYear()} Future Academy. All rights reserved.</p>
-            <div className="flex gap-4">
-              {['Twitter', 'LinkedIn', 'YouTube', 'Instagram'].map((s) => (
-                <a key={s} href="#" className="transition hover:text-[#00e5ff]">{s}</a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+    <span ref={ref} className="text-3xl font-bold text-brand-600 dark:text-brand-400">
+      {val.toLocaleString('ar-EG')}{suffix}
+    </span>
   );
 }
