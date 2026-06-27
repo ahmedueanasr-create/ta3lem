@@ -48,12 +48,17 @@ if (fs.existsSync(storageDir)) {
 
 // serve frontend static files (production single-port deployment via Passenger)
 const publicDir = path.resolve(__dirname, '../../../public_html');
+const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+const staticDir = fs.existsSync(frontendDist) ? frontendDist : (fs.existsSync(publicDir) ? publicDir : null);
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
+}
+if (staticDir) {
+  app.use(express.static(staticDir));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/socket')) return next();
     if (req.path.includes('.')) return next();
-    res.sendFile(path.join(publicDir, 'index.html'), (err) => {
+    res.sendFile(path.join(staticDir, 'index.html'), (err) => {
       if (err) return next(err);
     });
   });
