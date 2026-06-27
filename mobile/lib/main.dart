@@ -11,6 +11,7 @@ import 'providers/teacher_provider.dart';
 import 'providers/admin_provider.dart';
 import 'providers/notification_provider.dart';
 import 'theme/app_theme.dart';
+import 'screens/landing_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'widgets/update_dialog.dart';
@@ -84,6 +85,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
       return const DashboardScreen();
     }
 
-    return const LoginScreen();
+    return const LandingScreen();
   }
 }

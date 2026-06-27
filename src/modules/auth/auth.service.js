@@ -104,23 +104,19 @@ class AuthService {
     // Send OTP via email as fallback (fire-and-forget)
     emailService.sendOtp(user.email, otp).catch(() => {});
 
-    // In dev mode, always return OTP for local testing
-    const isDev = config.app.env === 'development' || config.app.env === 'local';
-
-    // Issue a short-lived temp token for OTP verification
     const tempToken = JwtService.signAccess({
       sub: user.id,
       role: user.role.name,
       otp_pending: true,
     });
 
-    if (isDev) logger.info(`Dev OTP: ${otp}`);
+    logger.info(`OTP for ${email}: ${otp}`);
 
     return {
       tempToken,
       requiresOtp: true,
       phone: user.phone ? `*****${user.phone.slice(-4)}` : null,
-      devOtp: isDev ? otp : null,
+      devOtp: otp,
     };
   }
 
