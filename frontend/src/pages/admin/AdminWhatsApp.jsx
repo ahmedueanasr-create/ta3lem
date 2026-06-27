@@ -10,10 +10,17 @@ export default function AdminWhatsApp() {
   const [form, setForm] = useState({ phone: '', message: '' });
   const [result, setResult] = useState(null);
 
-  const load = () => {
+  const load = async () => {
     setLoading(true);
-    api.get('/whatsapp/status').then((r) => setStatus(r.data.data));
-    api.get('/whatsapp/messages?direction=out').then((r) => setMessages(r.data.data)).finally(() => setLoading(false));
+    try {
+      const [sr, mr] = await Promise.all([
+        api.get('/whatsapp/status'),
+        api.get('/whatsapp/messages?direction=out'),
+      ]);
+      setStatus(sr.data.data);
+      setMessages(mr.data.data);
+    } catch {}
+    setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
