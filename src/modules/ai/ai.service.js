@@ -14,7 +14,7 @@ const EXAM_SYSTEM = `أنت خبير في إنشاء الاختبارات الت
 لـ mcq: options مطلوب + correctAnswer (index). لـ truefalse: options غير مطلوب، correctAnswer 0/1. لـ essay: options و correctAnswer غير مطلوبين.`;
 
 async function tutorChat(messages) {
-  const reply = await ai.ask(TUTOR_SYSTEM, messages, { maxTokens: 4096 });
+  const reply = await ai.ask(TUTOR_SYSTEM, messages, { maxTokens: 2000 });
   return reply;
 }
 
@@ -22,7 +22,7 @@ async function generateExam({ subject, level = 'متوسط', count = 5, types = 
   const prompt = `أنشئ ${count} أسئلة في مادة "${subject}" بمستوى ${level}.
 أنواع الأسئلة المطلوبة: ${types.join(', ')}.
 تأكد من تنوع الأسئلة ووضوحها ودقة الإجابات.`;
-  const reply = await ai.ask(EXAM_SYSTEM, [prompt], { maxTokens: 8192, temperature: 0.8 });
+  const reply = await ai.ask(EXAM_SYSTEM, [prompt], { maxTokens: 3000, temperature: 0.8 });
   try {
     const cleaned = reply.replace(/```json\s*/gi, '').replace(/```\s*$/gm, '').trim();
     return JSON.parse(cleaned);
@@ -43,7 +43,7 @@ async function summarizeSession({ title, chatLog, duration }) {
 2. أهم النقاط التعليمية
 3. الواجب المطلوب من الطلاب
 4. أسئلة مراجعة (3 أسئلة)`;
-  return ai.ask(TUTOR_SYSTEM, [prompt], { maxTokens: 4096 });
+  return ai.ask(TUTOR_SYSTEM, [prompt], { maxTokens: 2000 });
 }
 
 module.exports = { tutorChat, generateExam, summarizeSession };

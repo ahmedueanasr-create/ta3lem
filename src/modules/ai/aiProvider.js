@@ -12,7 +12,7 @@ async function callOpenAI(messages, opts = {}) {
   const body = JSON.stringify({
     model: opts.model || 'gpt-4o-mini',
     messages,
-    max_tokens: opts.maxTokens || 2048,
+    max_tokens: opts.maxTokens || 1500,
     temperature: opts.temperature ?? 0.7,
   });
 
@@ -89,7 +89,7 @@ async function callOpenRouter(messages, opts = {}) {
   const body = JSON.stringify({
     model: opts.model || config.ai.openRouterModel,
     messages,
-    max_tokens: opts.maxTokens || 2048,
+    max_tokens: opts.maxTokens || 1500,
     temperature: opts.temperature ?? 0.7,
   });
 
