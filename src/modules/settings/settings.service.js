@@ -7,6 +7,21 @@ const SETTINGS_PATH = path.resolve(process.cwd(), 'storage', 'settings.json');
 
 const defaults = {
   waFallbackApiUrl: '',
+  // App settings
+  appName: 'تعليم',
+  appDescription: 'منصة تعليمية تفاعلية',
+  contactEmail: '',
+  contactPhone: '',
+  socialFacebook: '',
+  socialTwitter: '',
+  socialInstagram: '',
+  socialWhatsApp: '',
+  socialTelegram: '',
+  aboutText: '',
+  termsText: '',
+  privacyText: '',
+  appLogo: '',
+  appFavicon: '',
 };
 
 class SettingsService {

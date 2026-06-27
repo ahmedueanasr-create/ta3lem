@@ -22,3 +22,8 @@ livekit*.err
 *.exe
 *.cmd
 ssh_*.txt
+
+# Gradle cache
+.gradle_home/
+# Frontend build artifact
+dist.tar.gz

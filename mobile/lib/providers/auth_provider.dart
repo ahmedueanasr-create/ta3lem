@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
+import '../services/socket_service.dart';
 import '../models/user.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -30,7 +31,7 @@ class AuthProvider extends ChangeNotifier {
         _user = User.fromJson(jsonDecode(userData));
         _isAuthenticated = true;
         notifyListeners();
-        // Verify token is still valid
+        SocketService.connect();
         _refreshUser();
       } catch (_) {}
     }
@@ -46,7 +47,6 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (_) {
-      // Token might be expired, logout silently
       await logout();
     }
   }
@@ -98,6 +98,7 @@ class AuthProvider extends ChangeNotifier {
         _isLoading = false;
         _requiresOtp = false;
         notifyListeners();
+        SocketService.connect();
         return true;
       }
       _isLoading = false;
@@ -118,6 +119,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     await ApiService.logout();
+    SocketService.disconnect();
     _user = null;
     _isAuthenticated = false;
     _requiresOtp = false;

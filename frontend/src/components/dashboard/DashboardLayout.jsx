@@ -10,9 +10,11 @@ const adminLinks = [
   { to: '/admin/teachers', label: 'المدرسون', icon: '🧑‍🏫' },
   { to: '/admin/subjects', label: 'المواد', icon: '📚' },
   { to: '/admin/sessions', label: 'الحصص', icon: '🎥' },
+  { to: '/admin/monitor', label: 'متابعة الحصص', icon: '📡' },
   { to: '/admin/reports', label: 'التقارير', icon: '📊' },
   { to: '/admin/whatsapp', label: 'واتساب', icon: '💬' },
-  { to: '/admin/settings', label: 'الإعدادات', icon: '⚙️' },
+  { to: '/admin/app-settings', label: 'إعدادات التطبيق', icon: '⚙️' },
+  { to: '/admin/app-versions', label: 'التحديثات', icon: '📲' },
   { to: '/ai/tutor', label: 'المساعد الذكي', icon: '🧠' },
 ];
 
@@ -43,7 +45,7 @@ const studentLinks = [
 const supervisorLinks = [
   { to: '/dashboard', label: 'الرئيسية', icon: '🏠' },
   { to: '/supervisor/students', label: 'متابعة الطلاب', icon: '🎓' },
-  { to: '/admin/sessions', label: 'الحصص المباشرة', icon: '🎥' },
+  { to: '/admin/monitor', label: 'متابعة الحصص', icon: '📡' },
   { to: '/admin/reports', label: 'التقارير', icon: '📊' },
   { to: '/admin/teachers', label: 'المدرسون', icon: '🧑‍🏫' },
   { to: '/admin/whatsapp', label: 'واتساب', icon: '💬' },

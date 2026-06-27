@@ -22,6 +22,9 @@ const AdminSubjects = lazy(() => import('./pages/admin/AdminSubjects'));
 const AdminSessions = lazy(() => import('./pages/admin/AdminSessions'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 const AdminWhatsApp = lazy(() => import('./pages/admin/AdminWhatsApp'));
+const AdminAppVersions = lazy(() => import('./pages/admin/AdminAppVersions'));
+const AdminAppSettings = lazy(() => import('./pages/admin/AdminAppSettings'));
+const AdminSessionMonitor = lazy(() => import('./pages/admin/AdminSessionMonitor'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 const TeacherSessions = lazy(() => import('./pages/teacher/TeacherSessions'));
 const TeacherCreateSession = lazy(() => import('./pages/teacher/TeacherCreateSession'));
@@ -87,7 +90,10 @@ export default function App() {
               <Route path="/admin/sessions" element={<Protected roles={ADMIN_ROLES}><L><AdminSessions /></L></Protected>} />
               <Route path="/admin/reports" element={<Protected roles={[...ADMIN_ROLES, 'teachers_supervisor', 'student_supervisor']}><L><AdminReports /></L></Protected>} />
               <Route path="/admin/whatsapp" element={<Protected roles={[...ADMIN_ROLES, 'teachers_supervisor', 'student_supervisor']}><L><AdminWhatsApp /></L></Protected>} />
-            <Route path="/admin/settings" element={<Protected roles={ADMIN_ROLES}><L><AdminSettings /></L></Protected>} />
+              <Route path="/admin/app-versions" element={<Protected roles={ADMIN_ROLES}><L><AdminAppVersions /></L></Protected>} />
+              <Route path="/admin/app-settings" element={<Protected roles={ADMIN_ROLES}><L><AdminAppSettings /></L></Protected>} />
+              <Route path="/admin/monitor" element={<Protected roles={[...ADMIN_ROLES, 'teachers_supervisor', 'student_supervisor']}><L><AdminSessionMonitor /></L></Protected>} />
+              <Route path="/admin/settings" element={<Protected roles={ADMIN_ROLES}><L><AdminSettings /></L></Protected>} />
               <Route path="/teacher/sessions" element={<Protected roles={['teacher', ...ADMIN_ROLES]}><L><TeacherSessions /></L></Protected>} />
               <Route path="/teacher/create" element={<Protected roles={['teacher', ...ADMIN_ROLES]}><L><TeacherCreateSession /></L></Protected>} />
               <Route path="/teacher/homework" element={<Protected roles={['teacher', ...ADMIN_ROLES]}><L><TeacherHomework /></L></Protected>} />

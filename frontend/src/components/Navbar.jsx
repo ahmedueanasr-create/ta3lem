@@ -24,6 +24,9 @@ export default function Navbar() {
           <a href="#faq" className="hover:text-brand-600">الأسئلة</a>
         </div>
         <div className="flex items-center gap-2">
+          <a href="/downloads/ta3lem-app.apk" title="تحميل التطبيق" className="rounded-lg px-2 py-1.5 text-lg hover:bg-slate-100 dark:hover:bg-slate-800" download>
+            📱
+          </a>
           <ThemeToggle />
           {user ? (
             <>

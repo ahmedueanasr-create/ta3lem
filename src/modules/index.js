@@ -20,6 +20,7 @@ const mountRoutes = () => {
   router.use('/ai', require('./ai/ai.routes'));
   router.use('/parent', require('./parent/parent.routes'));
   router.use('/certificates', require('./certificates/certificate.routes'));
+  router.use('/app', require('./update/update.routes'));
 
   // Public webhooks (no auth) — LiveKit Egress recording callback
   router.post('/webhooks/recording/ready', require('./sessions/recording.routes').webhook);

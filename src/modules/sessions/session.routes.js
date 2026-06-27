@@ -21,6 +21,16 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json({ success: true, ...paginateResponse(rows, count, page, limit) });
 }));
 
+// Live session monitoring (admin/supervisor)
+router.get(
+  '/monitoring',
+  checkRole(ROLES.PLATFORM_ADMIN, ROLES.SUPER_ADMIN, ROLES.TEACHERS_SUPERVISOR, ROLES.STUDENT_SUPERVISOR),
+  asyncHandler(async (req, res) => {
+    const sessions = await sessionService.getLiveSessions();
+    res.json({ success: true, data: sessions });
+  }),
+);
+
 router.get('/:id', asyncHandler(async (req, res) => {
   const session = await sessionService.getById(req.params.id);
   res.json({ success: true, data: session });

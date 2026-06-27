@@ -97,7 +97,14 @@ router.get('/', (req, res) => {
 router.put(
   '/',
   asyncHandler(async (req, res) => {
-    const allowed = ['waFallbackApiUrl'];
+    const allowed = [
+      'waFallbackApiUrl',
+      'appName', 'appDescription',
+      'contactEmail', 'contactPhone',
+      'socialFacebook', 'socialTwitter', 'socialInstagram', 'socialWhatsApp', 'socialTelegram',
+      'aboutText', 'termsText', 'privacyText',
+      'appLogo', 'appFavicon',
+    ];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];

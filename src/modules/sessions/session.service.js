@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const { Sequelize } = require('sequelize');
 const { Session, SessionEnrollment, SessionAttendance, SessionRecording, SessionBan, SessionReport, User, Teacher, TeacherPricing, Subject, Course } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const config = require('../../config');
@@ -333,6 +334,39 @@ class SessionService {
     await provider.stopRecording(session.room_name, recording.id);
     await recording.update({ status: 'processing' });
     return recording;
+  }
+
+  async getLiveSessions() {
+    const sessions = await Session.findAll({
+      where: { status: 'live' },
+      include: [
+        { model: Teacher, as: 'teacher', include: [{ model: User, as: 'user', attributes: ['id', 'name', 'phone', 'avatar'] }] },
+        { model: Subject, as: 'subject', attributes: ['id', 'name'] },
+        { model: SessionEnrollment, as: 'enrollments', attributes: ['id'] },
+      ],
+      order: [['started_at', 'DESC']],
+    });
+
+    // Count currently present participants (joined_at set, left_at null)
+    const attendanceCounts = await SessionAttendance.findAll({
+      where: { left_at: null },
+      attributes: ['session_id', [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']],
+      group: ['session_id'],
+      raw: true,
+    });
+    const countMap = {};
+    for (const row of attendanceCounts) {
+      countMap[row.session_id] = parseInt(row.count, 10);
+    }
+
+    return sessions.map((s) => {
+      const data = s.toJSON();
+      return {
+        ...data,
+        liveParticipants: countMap[s.id] || 0,
+        totalEnrolled: data.enrollments?.length || 0,
+      };
+    });
   }
 
   async createReport(userId, sessionId, dto) {
