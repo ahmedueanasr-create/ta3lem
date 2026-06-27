@@ -1,6 +1,6 @@
 'use strict';
 
-const { asyncHandler } = require('../../utils');
+const asyncHandler = require('../../utils/asyncHandler');
 const updateService = require('./update.service');
 
 exports.getLatestVersion = asyncHandler(async (req, res) => {

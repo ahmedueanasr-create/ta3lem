@@ -5,7 +5,7 @@ const multer = require('multer');
 const config = require('../../config');
 const auth = require('../../middleware/auth');
 const { checkRole } = require('../../middleware/rbac');
-const { ROLES } = require('../../utils/roles');
+const ROLES = require('../../utils/roles');
 const ctrl = require('./update.controller');
 
 const upload = multer({
