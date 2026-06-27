@@ -280,32 +280,42 @@ class WhatsAppService {
     return this.start();
   }
 
-  async send(phone, message) {
+  async send(phone, message, retries = 3) {
     const to = jid(phone);
     try {
       await WhatsAppMessage.create({ jid: to, message, status: 'queued', direction: 'out' });
     } catch {}
-    if (!this.isReady()) {
-      const fallbackResult = await this._fallbackSend(phone, message);
-      if (fallbackResult) return fallbackResult;
-      logger.warn('WhatsApp not ready; message queued', { to });
-      return { status: 'queued' };
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      if (this.isReady()) {
+        try {
+          const sendPromise = sock.sendMessage(to, { text: message });
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('sendMessage timeout')), 15000));
+          const sent = await Promise.race([sendPromise, timeoutPromise]);
+          await WhatsAppMessage.update(
+            { status: 'sent', wa_message_id: sent?.key?.id },
+            { where: { jid: to, message, direction: 'out', status: 'queued', wa_message_id: null } },
+          );
+          return { status: 'sent', messageId: sent?.key?.id };
+        } catch (err) {
+          if (attempt < retries) {
+            logger.warn('WhatsApp send attempt failed, retrying', { attempt, to, error: err.message });
+            await new Promise((r) => setTimeout(r, 2000));
+            continue;
+          }
+          logger.error('WhatsApp send failed, trying fallback', { to, error: err.message });
+          const fallbackResult = await this._fallbackSend(phone, message);
+          if (fallbackResult) return fallbackResult;
+          return { status: 'failed', error: err.message };
+        }
+      }
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 3000));
+      }
     }
-    try {
-      const sendPromise = sock.sendMessage(to, { text: message });
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('sendMessage timeout')), 10000));
-      const sent = await Promise.race([sendPromise, timeoutPromise]);
-      await WhatsAppMessage.update(
-        { status: 'sent', wa_message_id: sent?.key?.id },
-        { where: { jid: to, message, direction: 'out', status: 'queued', wa_message_id: null } },
-      );
-      return { status: 'sent', messageId: sent?.key?.id };
-    } catch (err) {
-      logger.error('WhatsApp send failed, trying fallback', { to, error: err.message });
-      const fallbackResult = await this._fallbackSend(phone, message);
-      if (fallbackResult) return fallbackResult;
-      return { status: 'failed', error: err.message };
-    }
+    const fallbackResult = await this._fallbackSend(phone, message);
+    if (fallbackResult) return fallbackResult;
+    logger.warn('WhatsApp not ready; message queued', { to });
+    return { status: 'queued' };
   }
 
   async _fallbackSend(phone, message) {
