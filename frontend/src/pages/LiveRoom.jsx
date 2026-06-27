@@ -157,7 +157,11 @@ export default function LiveRoom() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isTeacher = user?.role?.name === 'teacher' || user?.role?.name === 'platform_admin';
+  const role = user?.role?.name;
+  const isTeacher = role === 'teacher' || role === 'platform_admin';
+  const isAdmin = role === 'platform_admin' || role === 'super_admin';
+  const isSupervisor = role === 'teachers_supervisor' || role === 'student_supervisor';
+  const isObserver = isAdmin || isSupervisor;
 
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
@@ -169,6 +173,9 @@ export default function LiveRoom() {
   const [activeTab, setActiveTab] = useState('chat');
   const [roomLocked, setRoomLocked] = useState(false);
   const [roomName, setRoomName] = useState(null);
+
+  const [reportForm, setReportForm] = useState({ show: false, type: 'other', description: '', severity: 'medium' });
+  const [reports, setReports] = useState([]);
 
   const roomRef = useRef(null);
   const socketRef = useRef(null);
@@ -188,7 +195,14 @@ export default function LiveRoom() {
 
     const enter = async () => {
       try {
-        const endpoint = isTeacher ? `/sessions/${id}/start` : `/sessions/${id}/join`;
+        let endpoint;
+        if (isObserver) {
+          endpoint = `/sessions/${id}/join-as-observer`;
+        } else if (isTeacher) {
+          endpoint = `/sessions/${id}/start`;
+        } else {
+          endpoint = `/sessions/${id}/join`;
+        }
         const { data } = await api.post(endpoint);
         if (!mounted) return;
         setRoomName(data.data.roomName);
@@ -268,6 +282,31 @@ export default function LiveRoom() {
           setRoomLocked(m.locked || false);
         });
 
+        sock.on('mute:user', (m) => {
+          if (!mounted || !roomRef.current) return;
+          if (m.userId === user.id) return;
+          const rp = roomRef.current.remoteParticipants;
+          rp.forEach(p => {
+            if (p.identity === m.userId || p.identity === 'student-' + m.userId) {
+              p.audioTrackPublications.forEach(pub => {
+                if (pub.track) pub.track.mute();
+              });
+            }
+          });
+        });
+
+        sock.on('kick:user', (m) => {
+          if (!mounted) return;
+          if (m.userId === user.id) {
+            navigate('/dashboard');
+          }
+        });
+
+        sock.on('session:report', (m) => {
+          if (!mounted) return;
+          setReports(prev => [...prev, m]);
+        });
+
       } catch (ex) {
         if (!mounted) return;
         setErr(ex.response?.data?.message || ex.message);
@@ -304,8 +343,13 @@ export default function LiveRoom() {
     socketRef.current?.emit('hand:lower', { sessionId: id });
   }, [id]);
 
+  const lowerStudentHand = useCallback((userId) => {
+    socketRef.current?.emit('hand:lower', { sessionId: id, targetUserId: userId });
+    setHands(prev => prev.filter(u => u !== userId));
+  }, [id]);
+
   const leave = useCallback(async () => {
-    if (isTeacherRef.current) await api.post(`/sessions/${id}/end`).catch(() => {});
+    if (isTeacherRef.current && !isObserver) await api.post(`/sessions/${id}/end`).catch(() => {});
     navigate('/dashboard');
   }, [id, navigate]);
 
@@ -353,9 +397,45 @@ export default function LiveRoom() {
     });
   }, []);
 
+  const muteUser = useCallback((targetIdentity) => {
+    const room = roomRef.current;
+    if (!room) return;
+    room.remoteParticipants.forEach(p => {
+      if (p.identity === targetIdentity) {
+        p.audioTrackPublications.forEach(pub => {
+          if (pub.track) pub.track.mute();
+        });
+      }
+    });
+    socketRef.current?.emit('mute:user', { sessionId: id, targetUserId: targetIdentity });
+  }, [id]);
+
+  const kickUser = useCallback((targetIdentity) => {
+    if (!confirm('تأكيد طرد المشارك؟')) return;
+    socketRef.current?.emit('kick:user', { sessionId: id, targetUserId: targetIdentity });
+  }, [id]);
+
   const endSession = useCallback(async () => {
     try {
       await api.post(`/sessions/${id}/end`);
+    } catch {}
+    navigate('/dashboard');
+  }, [id, navigate]);
+
+  const forceEndSession = useCallback(async () => {
+    if (!confirm('إنهاء الجلسة forcefully؟')) return;
+    try {
+      await api.post(`/sessions/${id}/force-end`);
+      socketRef.current?.emit('session:force-end', { sessionId: id });
+    } catch {}
+    navigate('/dashboard');
+  }, [id, navigate]);
+
+  const suspendTeacher = useCallback(async () => {
+    if (!confirm('تعليق حساب المدرس وإنهاء الجلسة؟')) return;
+    try {
+      await api.post(`/sessions/${id}/suspend-teacher`);
+      socketRef.current?.emit('session:force-end', { sessionId: id });
     } catch {}
     navigate('/dashboard');
   }, [id, navigate]);
@@ -369,6 +449,23 @@ export default function LiveRoom() {
       console.error('Lock error:', e);
     }
   }, [id, roomLocked]);
+
+  const submitReport = useCallback((e) => {
+    e.preventDefault();
+    if (!reportForm.description.trim()) return;
+    socketRef.current?.emit('session:report', {
+      sessionId: id,
+      type: reportForm.type,
+      description: reportForm.description,
+      severity: reportForm.severity,
+    });
+    api.post(`/sessions/${id}/report`, {
+      type: reportForm.type,
+      description: reportForm.description,
+      severity: reportForm.severity,
+    }).catch(() => {});
+    setReportForm({ show: false, type: 'other', description: '', severity: 'medium' });
+  }, [id, reportForm]);
 
   const handUp = hands.includes(user?.id);
 
@@ -417,9 +514,12 @@ export default function LiveRoom() {
             <span className="text-xs text-amber-400">جاري محاولة إعادة الاتصال...</span>
           )}
           {roomName && <span className="text-sm text-slate-400">{roomName}</span>}
+          {isObserver && (
+            <span className="rounded bg-purple-700 px-2 py-0.5 text-xs text-white">مُراقِب</span>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          {isTeacher && (
+          {!isObserver && isTeacher && (
             <>
               <button
                 onClick={toggleLock}
@@ -435,8 +535,72 @@ export default function LiveRoom() {
               </button>
             </>
           )}
+          {isAdmin && (
+            <>
+              <button
+                onClick={forceEndSession}
+                className="rounded-lg bg-red-700 px-3 py-1.5 text-xs hover:bg-red-800"
+              >
+                ⛔ إنهاء قسري
+              </button>
+              <button
+                onClick={suspendTeacher}
+                className="rounded-lg bg-orange-700 px-3 py-1.5 text-xs hover:bg-orange-800"
+              >
+                🚫 تعليق المدرس
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Report form modal */}
+      {reportForm.show && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60">
+          <form onSubmit={submitReport} className="mx-4 w-full max-w-md rounded-xl bg-slate-800 p-6">
+            <h3 className="mb-4 text-lg font-bold">تقديم بلاغ</h3>
+            <select
+              value={reportForm.type}
+              onChange={e => setReportForm(f => ({ ...f, type: e.target.value }))}
+              className="mb-3 w-full rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm text-white"
+            >
+              <option value="conduct">سلوك</option>
+              <option value="technical">تقني</option>
+              <option value="content">محتوى</option>
+              <option value="other">أخرى</option>
+            </select>
+            <select
+              value={reportForm.severity}
+              onChange={e => setReportForm(f => ({ ...f, severity: e.target.value }))}
+              className="mb-3 w-full rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm text-white"
+            >
+              <option value="low">منخفض</option>
+              <option value="medium">متوسط</option>
+              <option value="high">عالي</option>
+              <option value="critical">حرج</option>
+            </select>
+            <textarea
+              value={reportForm.description}
+              onChange={e => setReportForm(f => ({ ...f, description: e.target.value }))}
+              placeholder="وصف البلاغ..."
+              className="mb-4 w-full rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              rows={4}
+            />
+            <div className="flex gap-2">
+              <button type="submit" className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm hover:bg-red-700">
+                إرسال البلاغ
+              </button>
+              <button
+                type="button"
+                onClick={() => setReportForm(f => ({ ...f, show: false }))}
+                className="rounded-lg bg-slate-600 px-4 py-2 text-sm hover:bg-slate-500"
+              >
+                إلغاء
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Main area */}
       <div className="flex flex-1 overflow-hidden">
@@ -460,21 +624,25 @@ export default function LiveRoom() {
 
           {/* Bottom toolbar */}
           <div className="flex items-center justify-center gap-3 border-t border-slate-800 bg-slate-900 p-3">
-            <button
-              onClick={handUp ? lowerHand : raiseHand}
-              className={'flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm ' + (handUp ? 'bg-amber-600' : 'bg-slate-700') + ' hover:opacity-80'}
-            >
-              ✋ {handUp ? 'خفض اليد' : 'رفع اليد'}
-            </button>
+            {!isObserver && (
+              <button
+                onClick={handUp ? lowerHand : raiseHand}
+                className={'flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm ' + (handUp ? 'bg-amber-600' : 'bg-slate-700') + ' hover:opacity-80'}
+              >
+                ✋ {handUp ? 'خفض اليد' : 'رفع اليد'}
+              </button>
+            )}
 
-            <button
-              onClick={toggleScreenShare}
-              className={'flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm ' + (screenShared ? 'bg-brand-600' : 'bg-slate-700') + ' hover:opacity-80'}
-            >
-              📺 {screenShared ? 'إيقاف المشاركة' : 'مشاركة الشاشة'}
-            </button>
+            {!isObserver && (
+              <button
+                onClick={toggleScreenShare}
+                className={'flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm ' + (screenShared ? 'bg-brand-600' : 'bg-slate-700') + ' hover:opacity-80'}
+              >
+                📺 {screenShared ? 'إيقاف المشاركة' : 'مشاركة الشاشة'}
+              </button>
+            )}
 
-            {isTeacher && (
+            {!isObserver && isTeacher && (
               <button
                 onClick={toggleRecording}
                 className={'flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm ' + (recording ? 'bg-red-600 animate-pulse' : 'bg-slate-700') + ' hover:opacity-80'}
@@ -488,6 +656,13 @@ export default function LiveRoom() {
               className="flex items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2 text-sm hover:bg-slate-600"
             >
               ⛶ ملء الشاشة
+            </button>
+
+            <button
+              onClick={() => setReportForm(f => ({ ...f, show: true }))}
+              className="flex items-center gap-1.5 rounded-lg bg-slate-700 px-4 py-2 text-sm hover:bg-red-600"
+            >
+              📋 بلاغ
             </button>
 
             <button
@@ -514,6 +689,12 @@ export default function LiveRoom() {
               className={'flex-1 px-4 py-3 text-sm font-medium ' + (activeTab === 'participants' ? 'border-b-2 border-brand-500 text-brand-400' : 'text-slate-400 hover:text-white')}
             >
               👥 مشاركون{hands.length > 0 ? ' (' + hands.length + ')' : ''}
+            </button>
+            <button
+              onClick={() => setActiveTab('reports')}
+              className={'flex-1 px-4 py-3 text-sm font-medium ' + (activeTab === 'reports' ? 'border-b-2 border-red-500 text-red-400' : 'text-slate-400 hover:text-white')}
+            >
+              📋 بلاغات
             </button>
           </div>
 
@@ -563,6 +744,33 @@ export default function LiveRoom() {
                     {hands.includes(p.identity) && <span className="text-amber-400">✋</span>}
                     <span>{p.hasAudio ? '🎤' : '🔇'}</span>
                     <span>{p.hasVideo ? '📹' : '🚫'}</span>
+                    {!p.isLocal && isTeacher && !isObserver && (
+                      <>
+                        <button
+                          onClick={() => muteUser(p.identity)}
+                          className="rounded bg-slate-700 px-1.5 py-0.5 text-xs hover:bg-amber-600"
+                          title="كتم"
+                        >
+                          🔇
+                        </button>
+                        <button
+                          onClick={() => kickUser(p.identity)}
+                          className="rounded bg-slate-700 px-1.5 py-0.5 text-xs hover:bg-red-600"
+                          title="طرد"
+                        >
+                          🚫
+                        </button>
+                      </>
+                    )}
+                    {!p.isLocal && hands.includes(p.identity) && isTeacher && (
+                      <button
+                        onClick={() => lowerStudentHand(p.identity)}
+                        className="rounded bg-amber-700 px-1.5 py-0.5 text-xs hover:bg-amber-600"
+                        title="خفض اليد"
+                      >
+                        ✋↓
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -570,13 +778,38 @@ export default function LiveRoom() {
                 <p className="text-center text-sm text-slate-500">لا يوجد مشاركون</p>
               )}
 
-              {isTeacher && (
+              {isTeacher && !isObserver && (
                 <button
                   onClick={muteAll}
                   className="mt-3 w-full rounded-lg bg-slate-700 px-3 py-2 text-sm hover:bg-slate-600"
                 >
                   🔇 كتم الكل
                 </button>
+              )}
+            </div>
+          )}
+
+          {/* Reports tab */}
+          {activeTab === 'reports' && (
+            <div className="flex-1 overflow-y-auto p-3">
+              <button
+                onClick={() => setReportForm(f => ({ ...f, show: true }))}
+                className="mb-3 w-full rounded-lg bg-red-600 px-3 py-2 text-sm hover:bg-red-700"
+              >
+                📋 تقديم بلاغ
+              </button>
+              {(isAdmin || isSupervisor) && reports.length > 0 && (
+                <div className="space-y-2">
+                  {reports.map((r, i) => (
+                    <div key={i} className="rounded-lg bg-slate-800/50 p-2 text-xs">
+                      <p className="text-red-400">{r.type} - {r.severity}</p>
+                      <p className="mt-1 text-slate-300">{r.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {reports.length === 0 && (
+                <p className="text-center text-sm text-slate-500">لا توجد بلاغات</p>
               )}
             </div>
           )}

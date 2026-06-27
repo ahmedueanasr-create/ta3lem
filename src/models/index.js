@@ -29,6 +29,8 @@ const AuditLog = require('./AuditLog');
 const Parent = require('./Parent');
 const StudentParent = require('./StudentParent');
 const Certificate = require('./Certificate');
+const SessionBan = require('./SessionBan');
+const SessionReport = require('./SessionReport');
 
 // ── RBAC ─────────────────────────────────────────────────────
 Role.belongsToMany(Permission, {
@@ -91,6 +93,14 @@ User.hasMany(SessionAttendance, { foreignKey: 'user_id', as: 'attendance' });
 
 SessionRecording.belongsTo(Session, { foreignKey: 'session_id', as: 'session' });
 Session.hasMany(SessionRecording, { foreignKey: 'session_id', as: 'recordings' });
+
+SessionBan.belongsTo(Session, { foreignKey: 'session_id', as: 'session' });
+SessionBan.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+Session.hasMany(SessionBan, { foreignKey: 'session_id', as: 'bans' });
+
+SessionReport.belongsTo(Session, { foreignKey: 'session_id', as: 'session' });
+SessionReport.belongsTo(User, { foreignKey: 'user_id', as: 'reporter' });
+Session.hasMany(SessionReport, { foreignKey: 'session_id', as: 'reports' });
 
 // ── Notifications / WhatsApp ─────────────────────────────────
 Notification.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
@@ -184,4 +194,6 @@ module.exports = {
   Parent,
   StudentParent,
   Certificate,
+  SessionBan,
+  SessionReport,
 };

@@ -43,13 +43,15 @@ class LiveKitProvider extends LiveProvider {
       identity,
       ttl: 60 * 60 * 4,
     });
+    const isObserver = role === 'observer';
     at.addGrant({
       room: roomName,
       roomJoin: true,
       canPublish: role === 'teacher',
       canSubscribe: true,
-      canPublishData: true,
+      canPublishData: !isObserver,
       roomAdmin: role === 'teacher',
+      hidden: isObserver,
     });
     return await at.toJwt();
   }

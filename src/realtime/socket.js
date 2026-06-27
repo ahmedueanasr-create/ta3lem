@@ -78,6 +78,36 @@ function initSocket(httpServer) {
       socket.to(room).emit('whiteboard:draw', { userId: socket.userId, data });
     });
 
+    // ── Teacher: mute a specific student ──────────────────────
+    socket.on('mute:user', ({ sessionId, targetUserId }) => {
+      const room = `session:${sessionId}`;
+      io.to(room).emit('mute:user', { userId: targetUserId, mutedBy: socket.userId });
+    });
+
+    // ── Teacher: kick a specific student ──────────────────────
+    socket.on('kick:user', ({ sessionId, targetUserId }) => {
+      const room = `session:${sessionId}`;
+      io.to(room).emit('kick:user', { userId: targetUserId, kickedBy: socket.userId });
+    });
+
+    // ── Admin: force-end session ──────────────────────────────
+    socket.on('session:force-end', ({ sessionId }) => {
+      const room = `session:${sessionId}`;
+      io.to(room).emit('session:ended', { reason: 'forced_by_admin', adminId: socket.userId });
+    });
+
+    // ── Report during live session ────────────────────────────
+    socket.on('session:report', ({ sessionId, type, description, severity }) => {
+      const room = `session:${sessionId}`;
+      io.to(room).emit('session:report', {
+        userId: socket.userId,
+        type,
+        description,
+        severity,
+        ts: Date.now(),
+      });
+    });
+
     socket.on('disconnect', () => {
       logger.debug(`socket disconnected: user=${socket.userId}`);
     });

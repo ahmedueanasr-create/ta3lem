@@ -43,6 +43,7 @@ const studentLinks = [
 const supervisorLinks = [
   { to: '/dashboard', label: 'الرئيسية', icon: '🏠' },
   { to: '/supervisor/students', label: 'متابعة الطلاب', icon: '🎓' },
+  { to: '/admin/sessions', label: 'الحصص المباشرة', icon: '🎥' },
   { to: '/admin/reports', label: 'التقارير', icon: '📊' },
   { to: '/admin/teachers', label: 'المدرسون', icon: '🧑‍🏫' },
   { to: '/admin/whatsapp', label: 'واتساب', icon: '💬' },

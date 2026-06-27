@@ -158,4 +158,97 @@ router.get('/:id/attendance/export', asyncHandler(async (req, res) => {
   res.send(header + rows);
 }));
 
+// ── Observer join (admin / supervisor incognito) ──────────────
+router.post(
+  '/:id/join-as-observer',
+  checkRole(ROLES.PLATFORM_ADMIN, ROLES.SUPER_ADMIN, ROLES.TEACHERS_SUPERVISOR, ROLES.STUDENT_SUPERVISOR),
+  asyncHandler(async (req, res) => {
+    const result = await sessionService.joinAsObserver(req.user.id, req.params.id);
+    res.json({ success: true, data: result });
+  }),
+);
+
+// ── Recording start / stop ───────────────────────────────────
+router.post(
+  '/:id/recording/start',
+  checkRole(ROLES.TEACHER, ROLES.PLATFORM_ADMIN),
+  asyncHandler(async (req, res) => {
+    const recording = await sessionService.startRecording(req.user.id, req.params.id);
+    res.json({ success: true, data: recording });
+  }),
+);
+
+router.post(
+  '/:id/recording/stop',
+  checkRole(ROLES.TEACHER, ROLES.PLATFORM_ADMIN),
+  asyncHandler(async (req, res) => {
+    const recording = await sessionService.stopRecording(req.user.id, req.params.id);
+    res.json({ success: true, data: recording });
+  }),
+);
+
+// ── Lock / unlock room ───────────────────────────────────────
+router.post(
+  '/:id/lock',
+  checkRole(ROLES.TEACHER, ROLES.PLATFORM_ADMIN),
+  asyncHandler(async (req, res) => {
+    const session = await sessionService.lockRoom(req.user.id, req.params.id, req.body.locked !== false);
+    res.json({ success: true, data: session });
+  }),
+);
+
+// ── Admin: force-end session ─────────────────────────────────
+router.post(
+  '/:id/force-end',
+  checkRole(ROLES.PLATFORM_ADMIN, ROLES.SUPER_ADMIN),
+  asyncHandler(async (req, res) => {
+    const session = await sessionService.forceEnd(req.user.id, req.params.id);
+    res.json({ success: true, data: session });
+  }),
+);
+
+// ── Admin: ban user from session ──────────────────────────────
+router.post(
+  '/:id/ban-user',
+  checkRole(ROLES.PLATFORM_ADMIN, ROLES.SUPER_ADMIN),
+  asyncHandler(async (req, res) => {
+    const { user_id, reason } = req.body;
+    if (!user_id) return res.status(400).json({ success: false, message: 'user_id required' });
+    const ban = await sessionService.banUser(req.user.id, req.params.id, user_id, reason);
+    res.json({ success: true, data: ban });
+  }),
+);
+
+// ── Admin: suspend teacher mid-session ────────────────────────
+router.post(
+  '/:id/suspend-teacher',
+  checkRole(ROLES.PLATFORM_ADMIN, ROLES.SUPER_ADMIN),
+  asyncHandler(async (req, res) => {
+    const session = await sessionService.suspendTeacher(req.user.id, req.params.id);
+    res.json({ success: true, data: session });
+  }),
+);
+
+// ── Reports ──────────────────────────────────────────────────
+router.post(
+  '/:id/report',
+  asyncHandler(async (req, res) => {
+    const report = await sessionService.createReport(req.user.id, req.params.id, req.body);
+    res.status(201).json({ success: true, data: report });
+  }),
+);
+
+router.get(
+  '/:id/reports',
+  checkRole(ROLES.PLATFORM_ADMIN, ROLES.SUPER_ADMIN, ROLES.TEACHERS_SUPERVISOR),
+  asyncHandler(async (req, res) => {
+    const { SessionReport } = require('../../models');
+    const reports = await SessionReport.findAll({
+      where: { session_id: req.params.id },
+      order: [['id', 'DESC']],
+    });
+    res.json({ success: true, data: reports });
+  }),
+);
+
 module.exports = router;

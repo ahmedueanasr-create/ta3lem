@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const { Session, SessionEnrollment, SessionAttendance, SessionRecording, User, Teacher, TeacherPricing, Subject, Course } = require('../../models');
+const { Session, SessionEnrollment, SessionAttendance, SessionRecording, SessionBan, SessionReport, User, Teacher, TeacherPricing, Subject, Course } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const config = require('../../config');
 const walletService = require('../wallet/wallet.service');
@@ -243,6 +243,109 @@ class SessionService {
     });
     if (existing) return existing;
     return SessionEnrollment.create({ session_id: sessionId, user_id: studentUserId, charged_amount: 0 });
+  }
+
+  async joinAsObserver(userId, sessionId) {
+    const session = await this.getById(sessionId);
+    if (session.status === 'cancelled' || session.status === 'ended') {
+      throw new ApiError(400, 'Session is not joinable');
+    }
+    const provider = getProvider();
+    const token = await provider.getToken(session.room_name, `observer-${userId}`, 'observer');
+    return { session, token, roomName: session.room_name, livekitUrl: config.live.livekit.url };
+  }
+
+  async forceEnd(adminUserId, sessionId) {
+    const session = await Session.findByPk(sessionId);
+    if (!session) throw new ApiError(404, 'Session not found');
+    if (session.status !== 'live') throw new ApiError(400, 'Session is not live');
+    const provider = getProvider();
+    await provider.deleteRoom(session.room_name);
+    const rows = await SessionAttendance.findAll({ where: { session_id: session.id, left_at: null } });
+    for (const a of rows) {
+      const leftAt = new Date();
+      const dur = Math.round((leftAt - new Date(a.joined_at || leftAt)) / 1000);
+      await a.update({ left_at: leftAt, duration_sec: dur });
+    }
+    const recording = await SessionRecording.findOne({ where: { session_id: session.id, status: 'recording' } });
+    if (recording) {
+      await recording.update({ status: 'processing' });
+    }
+    await session.update({ status: 'ended', ended_at: new Date() });
+    return session;
+  }
+
+  async banUser(adminUserId, sessionId, targetUserId, reason) {
+    const session = await Session.findByPk(sessionId);
+    if (!session) throw new ApiError(404, 'Session not found');
+    const [ban] = await SessionBan.findOrCreate({
+      where: { session_id: session.id, user_id: targetUserId },
+      defaults: { session_id: session.id, user_id: targetUserId, banned_by: adminUserId, reason },
+    });
+    return ban;
+  }
+
+  async suspendTeacher(adminUserId, sessionId) {
+    const { Teacher } = require('../../models');
+    const session = await Session.findByPk(sessionId);
+    if (!session) throw new ApiError(404, 'Session not found');
+    const teacher = await Teacher.findOne({ where: { user_id: session.teacher_id } });
+    if (teacher) {
+      await teacher.update({ status: 'suspended' });
+    }
+    const provider = getProvider();
+    await provider.deleteRoom(session.room_name);
+    const rows = await SessionAttendance.findAll({ where: { session_id: session.id, left_at: null } });
+    for (const a of rows) {
+      const leftAt = new Date();
+      const dur = Math.round((leftAt - new Date(a.joined_at || leftAt)) / 1000);
+      await a.update({ left_at: leftAt, duration_sec: dur });
+    }
+    await session.update({ status: 'ended', ended_at: new Date() });
+    return session;
+  }
+
+  async lockRoom(teacherUserId, sessionId, locked) {
+    const session = await Session.findByPk(sessionId);
+    if (!session) throw new ApiError(404, 'Session not found');
+    if (session.teacher_id !== teacherUserId) throw new ApiError(403, 'Not the session teacher');
+    return session.update({ is_private: locked });
+  }
+
+  async startRecording(teacherUserId, sessionId) {
+    const session = await Session.findByPk(sessionId);
+    if (!session) throw new ApiError(404, 'Session not found');
+    if (session.teacher_id !== teacherUserId) throw new ApiError(403, 'Not the session teacher');
+    const provider = getProvider();
+    const rec = await provider.startRecording(session.room_name);
+    if (!rec) throw new ApiError(500, 'Failed to start recording');
+    const recording = await SessionRecording.create({ session_id: session.id, status: 'recording' });
+    return recording;
+  }
+
+  async stopRecording(teacherUserId, sessionId) {
+    const session = await Session.findByPk(sessionId);
+    if (!session) throw new ApiError(404, 'Session not found');
+    if (session.teacher_id !== teacherUserId) throw new ApiError(403, 'Not the session teacher');
+    const recording = await SessionRecording.findOne({ where: { session_id: session.id, status: 'recording' } });
+    if (!recording) throw new ApiError(400, 'No active recording');
+    const provider = getProvider();
+    await provider.stopRecording(session.room_name, recording.id);
+    await recording.update({ status: 'processing' });
+    return recording;
+  }
+
+  async createReport(userId, sessionId, dto) {
+    const session = await Session.findByPk(sessionId);
+    if (!session) throw new ApiError(404, 'Session not found');
+    const report = await SessionReport.create({
+      session_id: session.id,
+      user_id: userId,
+      type: dto.type || 'other',
+      description: dto.description,
+      severity: dto.severity || 'medium',
+    });
+    return report;
   }
 }
 
