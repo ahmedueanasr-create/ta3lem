@@ -31,6 +31,7 @@ const StudentParent = require('./StudentParent');
 const Certificate = require('./Certificate');
 const SessionBan = require('./SessionBan');
 const SessionReport = require('./SessionReport');
+const AppVersion = require('./AppVersion');
 
 // ── RBAC ─────────────────────────────────────────────────────
 Role.belongsToMany(Permission, {
@@ -196,4 +197,5 @@ module.exports = {
   Certificate,
   SessionBan,
   SessionReport,
+  AppVersion,
 };
