@@ -66,6 +66,8 @@ module.exports = {
     provider: env('AI_PROVIDER', 'openai'),
     openaiKey: env('OPENAI_API_KEY', ''),
     geminiKey: env('GEMINI_API_KEY', ''),
+    openRouterKey: env('OPENROUTER_API_KEY', ''),
+    openRouterModel: env('OPENROUTER_MODEL', 'openai/gpt-4o'),
   },
   whatsapp: {
     enabled: bool('WA_ENABLED', true),
