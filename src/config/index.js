@@ -1,4 +1,5 @@
-require('dotenv').config({ override: true });
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env'), override: true });
 
 const env = (key, fallback = '') => process.env[key] ?? fallback;
 const bool = (key, fallback = false) => (process.env[key] === undefined ? fallback : process.env[key] === 'true');
