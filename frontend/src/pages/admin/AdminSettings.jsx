@@ -19,7 +19,6 @@ export default function AdminSettings() {
   const [pairPhone, setPairPhone] = useState('');
   const [pairError, setPairError] = useState('');
   const [pairSuccess, setPairSuccess] = useState('');
-  const eventSourceRef = useRef(null);
   const qrCanvasRef = useRef(null);
 
   // Fallback settings
@@ -64,30 +63,9 @@ export default function AdminSettings() {
     fetchStatus().finally(() => setLoading(false));
     fetchSettings();
 
-    const token = localStorage.getItem('accessToken');
-    const es = new EventSource(`/api/v1/settings/whatsapp/qr-stream?token=${token}`);
-    eventSourceRef.current = es;
+    const interval = setInterval(fetchStatus, 3000);
 
-    es.onmessage = (event) => {
-      try {
-        const d = JSON.parse(event.data);
-        if (d.type === 'qr') {
-          setQrCode(d.qr);
-          renderQr(d.qr);
-          setPairingCode(null);
-          setWaStatus((prev) => ({ ...prev, ready: false, status: 'awaiting_scan', qr: d.qr }));
-        } else if (d.type === 'status') {
-          setWaStatus((prev) => ({ ...prev, ready: d.ready, status: d.status }));
-          if (d.ready) { setQrCode(null); setPairingCode(null); }
-          if (d.qr) { setQrCode(d.qr); renderQr(d.qr); }
-          if (d.pairingCode) setPairingCode(d.pairingCode);
-        }
-      } catch {}
-    };
-
-    es.onerror = () => {};
-
-    return () => { es.close(); };
+    return () => { clearInterval(interval); };
   }, [renderQr]);
 
   const restart = async () => {

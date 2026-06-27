@@ -4,6 +4,7 @@ const { checkRole } = require('../../middleware/rbac');
 const asyncHandler = require('../../utils/asyncHandler');
 const { body } = require('express-validator');
 const validate = require('../../middleware/validate');
+const ApiError = require('../../utils/ApiError');
 const waService = require('../whatsapp/whatsapp.service');
 const settingsService = require('./settings.service');
 const ROLES = require('../../utils/roles');
@@ -72,9 +73,8 @@ router.get('/whatsapp/qr-stream', (req, res) => {
 // WhatsApp pair
 router.post('/whatsapp/pair', asyncHandler(async (req, res) => {
   const { phone } = req.body;
-  if (!phone) {
-    return res.status(400).json({ success: false, message: 'رقم الهاتف مطلوب' });
-  }
+  if (!phone) throw new ApiError(400, 'رقم الهاتف مطلوب');
+  if (waService.isReady()) throw new ApiError(400, 'واتساب متصل بالفعل');
   const code = await waService.requestPairingCode(phone);
   res.json({ success: true, data: { pairingCode: code, phone } });
 }));
