@@ -12,7 +12,7 @@ class UpdateService {
     return await AppVersion.findOne({
       where: { isActive: true },
       order: [['versionCode', 'DESC']],
-      attributes: ['id', 'versionCode', 'versionName', 'fileSize', 'releaseNotes', 'isForceUpdate', 'filePath', 'createdAt'],
+      attributes: ['id', 'versionCode', 'versionName', 'fileSize', 'releaseNotes', 'isForceUpdate', 'filePath', 'created_at'],
     });
   }
 
