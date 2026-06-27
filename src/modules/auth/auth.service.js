@@ -120,7 +120,7 @@ class AuthService {
       tempToken,
       requiresOtp: true,
       phone: user.phone ? `*****${user.phone.slice(-4)}` : null,
-      devOtp, // only present when WhatsApp not connected (dev mode)
+      devOtp: isDev ? otp : null,
     };
   }
 
