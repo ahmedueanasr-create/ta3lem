@@ -43,7 +43,7 @@ async function sendPush(userId, title, body, data = {}) {
 
   const payload = {
     notification: { title, body },
-    data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v ?? '']) )),
+    data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v ?? '')])),
   };
 
   const results = [];
