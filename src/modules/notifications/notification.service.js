@@ -1,13 +1,9 @@
 const { Notification } = require('../../models');
 const waService = require('../whatsapp/whatsapp.service');
-const { pub } = require('../../config/redis');
+const fcmService = require('../../services/fcm.service');
 const logger = require('../../config/logger');
 
 class NotificationService {
-  /**
-   * Send a notification across channels.
-   * @param {object} opts { user, phone, type, title, body, data, channels: ['inapp','push','whatsapp'] }
-   */
   async notify({ user, phone, type, title, body, data = {}, channels = ['inapp'] }) {
     const tasks = [];
 
@@ -20,8 +16,8 @@ class NotificationService {
       tasks.push(waService.send(phone, `${title}\n\n${body}`));
     }
     if (channels.includes('push') && user) {
-      // Push integration hook (FCM/APN) — emit event for downstream worker.
-      tasks.push(pub.publish('push:notify', JSON.stringify({ user: user.id ?? user, title, body, data })));
+      const uid = user.id ?? user;
+      tasks.push(fcmService.sendPush(uid, title, body, data));
     }
 
     const results = await Promise.allSettled(tasks);

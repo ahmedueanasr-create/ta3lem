@@ -196,6 +196,14 @@ class ApiService {
   // ── AI Tutor ────────────────────────────────────────────
   static Future<Map<String, dynamic>> aiChat(String message, {String? sessionId}) => _request('POST', '/ai/tutor/chat', body: {'message': message, if (sessionId != null) 'session_id': sessionId});
 
+  // ── Devices / FCM ──────────────────────────────────────────
+  static Future<Map<String, dynamic>> registerDeviceToken(String token, {String platform = 'android', String? deviceName}) =>
+      _request('POST', '/devices/register', body: {'token': token, 'platform': platform, if (deviceName != null) 'device_name': deviceName});
+  static Future<Map<String, dynamic>> unregisterDeviceToken(String token) =>
+      _request('POST', '/devices/unregister', body: {'token': token});
+  static Future<Map<String, dynamic>> getDeviceTokens() =>
+      _request('GET', '/devices');
+
   // ── Certificates ────────────────────────────────────────
   static Future<Map<String, dynamic>> verifyCertificate(String code) => _request('GET', '/certificates/verify/$code', auth: false);
   static Future<Map<String, dynamic>> myCertificates() => _request('GET', '/certificates/my');

@@ -10,7 +10,7 @@ class ChatMessage {
 }
 
 class AiProvider extends ChangeNotifier {
-  List<ChatMessage> _messages = [];
+  final List<ChatMessage> _messages = [];
   bool _isLoading = false;
   String? _error;
 

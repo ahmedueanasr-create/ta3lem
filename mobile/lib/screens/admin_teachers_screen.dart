@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/admin_provider.dart';
 import '../models/teacher.dart' show TeacherProfile;
-import '../services/api_service.dart';
 
 class AdminTeachersScreen extends StatefulWidget {
   const AdminTeachersScreen({super.key});

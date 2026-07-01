@@ -390,7 +390,7 @@ class _StudentLiveRoomScreenState extends State<StudentLiveRoomScreen> {
                                           decoration:
                                               BoxDecoration(
                                             color: AppColors
-                                                .cardBackground,
+                                                .surface,
                                             borderRadius:
                                                 BorderRadius
                                                     .circular(10),
@@ -409,7 +409,7 @@ class _StudentLiveRoomScreenState extends State<StudentLiveRoomScreen> {
             ),
             Container(
               decoration: BoxDecoration(
-                color: AppColors.cardBackground,
+                color: AppColors.surface,
                 border: Border(
                     top: BorderSide(color: AppColors.border)),
               ),
@@ -452,7 +452,7 @@ class _StudentLiveRoomScreenState extends State<StudentLiveRoomScreen> {
         ),
         Container(
           width: 72,
-          color: AppColors.cardBackground,
+          color: AppColors.surface,
           child: Column(children: [
             Container(
               padding: const EdgeInsets.symmetric(vertical: 6),

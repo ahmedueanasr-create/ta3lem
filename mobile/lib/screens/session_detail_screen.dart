@@ -288,7 +288,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     );
   }
 
-  Widget _buildStatusActions(auth) {
+  Widget _buildStatusActions(AuthProvider auth) {
     final s = _session!;
     final isTeacher = auth.user?.isTeacher == true;
     final isStudent = auth.user?.isStudent == true;

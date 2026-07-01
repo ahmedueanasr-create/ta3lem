@@ -15,53 +15,124 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('حسابي')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            CircleAvatar(
-              radius: 48,
-              backgroundColor: AppColors.primary,
-              child: Text(
-                _getInitial(user),
-                style: const TextStyle(fontSize: 36, color: Colors.white),
+      body: ListView(
+        padding: const EdgeInsets.all(0),
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                height: 140,
+                decoration: const BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(32),
+                    bottomRight: Radius.circular(32),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 80,
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 52,
+                      backgroundColor: Colors.white,
+                      child: CircleAvatar(
+                        radius: 48,
+                        backgroundColor: AppColors.primary,
+                        child: Text(
+                          _getInitial(user),
+                          style: const TextStyle(fontSize: 36, color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(user?.name ?? '', style: AppTheme.heading),
+                    const SizedBox(height: 4),
+                    Text(user?.email ?? '', style: AppTheme.body),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _roleLabel(user?.role ?? ''),
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 100),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Card(
+              elevation: 2,
+              shadowColor: Colors.black.withValues(alpha: 0.06),
+              child: Column(
+                children: [
+                  if (user?.phone != null)
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.phone_outlined, color: AppColors.primary, size: 20),
+                      ),
+                      title: const Text('رقم الهاتف', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                      subtitle: Text(user!.phone!, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                  if (user?.phone != null) const Divider(height: 1, indent: 16, endIndent: 16),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.settings_outlined, color: AppColors.secondary, size: 20),
+                    ),
+                    title: const Text('الإعدادات', style: TextStyle(fontSize: 14)),
+                    trailing: const Icon(Icons.chevron_left, color: AppColors.textTertiary),
+                    onTap: () {},
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.help_outline, color: AppColors.warning, size: 20),
+                    ),
+                    title: const Text('المساعدة', style: TextStyle(fontSize: 14)),
+                    trailing: const Icon(Icons.chevron_left, color: AppColors.textTertiary),
+                    onTap: () {},
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            Text(user?.name ?? '', style: AppTheme.heading),
-            const SizedBox(height: 4),
-            Text(user?.email ?? '', style: AppTheme.body),
-            const SizedBox(height: 8),
-            Chip(
-              label: Text(_roleLabel(user?.role ?? '')),
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-            ),
-            const SizedBox(height: 32),
-            if (user?.phone != null)
-              ListTile(
-                leading: const Icon(Icons.phone, color: AppColors.primary),
-                title: const Text('رقم الهاتف'),
-                subtitle: Text(user!.phone!),
-              ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.settings, color: AppColors.textSecondary),
-              title: const Text('الإعدادات'),
-              trailing: const Icon(Icons.chevron_left),
-              onTap: () {},
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.help_outline, color: AppColors.textSecondary),
-              title: const Text('المساعدة'),
-              trailing: const Icon(Icons.chevron_left),
-              onTap: () {},
-            ),
-            const Spacer(),
-            SizedBox(
+          ),
+          const SizedBox(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
                 onPressed: () async {
                   await auth.logout();
                   if (context.mounted) {
@@ -72,16 +143,20 @@ class ProfileScreen extends StatelessWidget {
                     );
                   }
                 },
+                icon: const Icon(Icons.logout, size: 20),
+                label: const Text('تسجيل الخروج'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.danger,
                   foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-                child: const Text('تسجيل الخروج'),
               ),
             ),
-            const SizedBox(height: 24),
-          ],
-        ),
+          ),
+          const SizedBox(height: 40),
+        ],
       ),
     );
   }

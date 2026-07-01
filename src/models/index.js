@@ -32,6 +32,7 @@ const Certificate = require('./Certificate');
 const SessionBan = require('./SessionBan');
 const SessionReport = require('./SessionReport');
 const AppVersion = require('./AppVersion');
+const DeviceToken = require('./DeviceToken');
 
 // ── RBAC ─────────────────────────────────────────────────────
 Role.belongsToMany(Permission, {
@@ -103,9 +104,12 @@ SessionReport.belongsTo(Session, { foreignKey: 'session_id', as: 'session' });
 SessionReport.belongsTo(User, { foreignKey: 'user_id', as: 'reporter' });
 Session.hasMany(SessionReport, { foreignKey: 'session_id', as: 'reports' });
 
-// ── Notifications / WhatsApp ─────────────────────────────────
+// ── Notifications / WhatsApp / FCM ────────────────────────────
 Notification.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 User.hasMany(Notification, { foreignKey: 'user_id', as: 'notifications' });
+
+DeviceToken.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+User.hasMany(DeviceToken, { foreignKey: 'user_id', as: 'deviceTokens' });
 
 // ── Exams ────────────────────────────────────────────────────
 Exam.belongsTo(Course, { foreignKey: 'course_id', as: 'course' });
@@ -198,4 +202,5 @@ module.exports = {
   SessionBan,
   SessionReport,
   AppVersion,
+  DeviceToken,
 };

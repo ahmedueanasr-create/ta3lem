@@ -11,6 +11,7 @@ const mountRoutes = () => {
   router.use('/courses', require('./courses/course.routes'));
   router.use('/sessions', require('./sessions/session.routes'));
   router.use('/notifications', require('./notifications/notification.routes'));
+  router.use('/devices', require('./notifications/device.routes'));
   router.use('/whatsapp', require('./whatsapp/whatsapp.routes'));
   router.use('/exams', require('./exams/exam.routes'));
   router.use('/homework', require('./homework/homework.routes'));

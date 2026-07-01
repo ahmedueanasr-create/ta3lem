@@ -138,7 +138,7 @@ class _TeacherCreateSessionScreenState extends State<TeacherCreateSessionScreen>
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<Subject>(
-                      value: _selectedSubject,
+                      initialValue: _selectedSubject,
                       decoration: const InputDecoration(labelText: 'المادة', prefixIcon: Icon(Icons.book)),
                       items: _subjects.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
                       onChanged: (v) => setState(() => _selectedSubject = v),

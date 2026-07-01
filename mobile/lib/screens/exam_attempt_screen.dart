@@ -200,7 +200,7 @@ class _ExamAttemptScreenState extends State<ExamAttemptScreen> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: const BoxDecoration(
-                            color: AppColors.cardBackground,
+                            color: AppColors.surface,
                             border: Border(top: BorderSide(color: AppColors.border)),
                           ),
                           child: Row(

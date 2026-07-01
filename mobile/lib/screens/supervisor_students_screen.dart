@@ -87,7 +87,6 @@ class _SupervisorStudentsScreenState extends State<SupervisorStudentsScreen> {
   Widget _buildStudentCard(dynamic s) {
     final user = s['user'] ?? s;
     final name = user['name'] ?? s['name'] ?? '';
-    final email = user['email'] ?? s['email'] ?? '';
     final grade = s['student']?['grade'] ?? s['grade'] ?? '-';
     final lastActivity = s['last_activity'] ?? s['lastActiveAt'] ?? '';
     final status = s['status'] ?? user['status'] ?? 'active';

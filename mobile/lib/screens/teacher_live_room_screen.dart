@@ -419,7 +419,7 @@ class _TeacherLiveRoomScreenState extends State<TeacherLiveRoomScreen> {
                               color: isMe
                                   ? AppColors.primary
                                       .withValues(alpha: 0.1)
-                                  : AppColors.cardBackground,
+                                  : AppColors.surface,
                               borderRadius:
                                   BorderRadius.circular(10),
                             ),
@@ -444,7 +444,7 @@ class _TeacherLiveRoomScreenState extends State<TeacherLiveRoomScreen> {
             ),
             Container(
               decoration: BoxDecoration(
-                color: AppColors.cardBackground,
+                color: AppColors.surface,
                 border: Border(
                     top: BorderSide(color: AppColors.border)),
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/theme_provider.dart';
 import 'providers/session_provider.dart';
 import 'providers/exam_provider.dart';
 import 'providers/homework_provider.dart';
@@ -12,12 +13,18 @@ import 'providers/admin_provider.dart';
 import 'providers/notification_provider.dart';
 import 'theme/app_theme.dart';
 import 'screens/landing_screen.dart';
-import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'widgets/update_dialog.dart';
+import 'services/cache_service.dart';
+import 'services/fcm_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await CacheService.init();
+  try {
+    await FcmService.init();
+  } catch (_) {}
   runApp(const Ta3lemApp());
 }
 
@@ -28,6 +35,7 @@ class Ta3lemApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
         ChangeNotifierProvider(create: (_) => AuthProvider()..init()),
         ChangeNotifierProvider(create: (_) => SessionProvider()),
         ChangeNotifierProvider(create: (_) => ExamProvider()),
@@ -38,24 +46,30 @@ class Ta3lemApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
-      child: MaterialApp(
-        title: 'تعليم',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        locale: const Locale('ar'),
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('ar')],
-        builder: (context, child) {
-          return Directionality(
-            textDirection: TextDirection.rtl,
-            child: child!,
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'تعليم',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: themeProvider.themeMode,
+            locale: const Locale('ar'),
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('ar')],
+            builder: (context, child) {
+              return Directionality(
+                textDirection: TextDirection.rtl,
+                child: child!,
+              );
+            },
+            home: const SplashScreen(),
           );
         },
-        home: const AuthWrapper(),
       ),
     );
   }

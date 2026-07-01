@@ -6,6 +6,7 @@ const logger = require('./config/logger');
 const { sequelize } = require('./models');
 const initSocket = require('./realtime/socket');
 const waService = require('./modules/whatsapp/whatsapp.service');
+const fcmService = require('./services/fcm.service');
 const { startJobs } = require('./jobs');
 
 // serve uploaded files (dev). In production use nginx / object storage.
@@ -27,6 +28,7 @@ async function boot() {
     }
 
     await waService.start();
+    fcmService.init();
     startJobs();
 
     server.listen(config.app.port, () => {

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/admin_provider.dart';
-import '../models/subject.dart' show Subject;
 
 class AdminSubjectsScreen extends StatefulWidget {
   const AdminSubjectsScreen({super.key});

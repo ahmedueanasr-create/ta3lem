@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/session_provider.dart';
-import '../models/session.dart';
 import '../theme/app_theme.dart';
 import 'student_live_room_screen.dart';
 
@@ -31,24 +30,19 @@ class _StudentSessionsScreenState extends State<StudentSessionsScreen> {
         return AppColors.primary;
       case 'ended':
       case 'cancelled':
-        return AppColors.textSecondary;
+        return AppColors.textTertiary;
       default:
-        return AppColors.textSecondary;
+        return AppColors.textTertiary;
     }
   }
 
-  IconData _statusIcon(String status) {
+  String _statusLabel(String status) {
     switch (status) {
-      case 'live':
-        return Icons.live_tv;
-      case 'scheduled':
-        return Icons.schedule;
-      case 'ended':
-        return Icons.check_circle;
-      case 'cancelled':
-        return Icons.cancel;
-      default:
-        return Icons.help;
+      case 'live': return 'مباشر';
+      case 'scheduled': return 'مجدول';
+      case 'ended': return 'منتهي';
+      case 'cancelled': return 'ملغي';
+      default: return status;
     }
   }
 
@@ -63,28 +57,44 @@ class _StudentSessionsScreenState extends State<StudentSessionsScreen> {
             ? const Center(child: CircularProgressIndicator())
             : provider.error != null
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48, color: AppColors.danger),
-                        const SizedBox(height: 12),
-                        Text(provider.error!, style: AppTheme.body),
-                        const SizedBox(height: 16),
-                        ElevatedButton(onPressed: _refresh, child: const Text('إعادة المحاولة')),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.danger.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.error_outline, size: 40, color: AppColors.danger),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(provider.error!, style: AppTheme.body, textAlign: TextAlign.center),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: _refresh,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 32),
+                            ),
+                            child: const Text('إعادة المحاولة'),
+                          ),
+                        ],
+                      ),
                     ),
                   )
                 : provider.sessions.isEmpty
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: const [
-                          SizedBox(height: 120),
+                          SizedBox(height: 100),
                           Center(
                             child: Column(
                               children: [
-                                Icon(Icons.live_tv, size: 64, color: AppColors.textSecondary),
-                                SizedBox(height: 12),
-                                Text('لا توجد حصص متاحة', style: TextStyle(color: AppColors.textSecondary)),
+                                Icon(Icons.live_tv, size: 64, color: AppColors.textTertiary),
+                                SizedBox(height: 16),
+                                Text('لا توجد حصص متاحة', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
                               ],
                             ),
                           ),
@@ -92,11 +102,14 @@ class _StudentSessionsScreenState extends State<StudentSessionsScreen> {
                       )
                     : ListView.builder(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
                         itemCount: provider.sessions.length,
                         itemBuilder: (context, index) {
                           final session = provider.sessions[index];
+                          final statusColor = _statusColor(session.status);
                           return Card(
+                            elevation: 2,
+                            shadowColor: Colors.black.withValues(alpha: 0.06),
                             margin: const EdgeInsets.only(bottom: 12),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(16),
@@ -116,71 +129,123 @@ class _StudentSessionsScreenState extends State<StudentSessionsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: statusColor.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            session.isLive ? Icons.live_tv : Icons.schedule,
+                                            color: statusColor,
+                                            size: 24,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 14),
                                         Expanded(
-                                          child: Text(session.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                session.title,
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              if (session.subjectName != null)
+                                                Text(session.subjectName!, style: AppTheme.caption),
+                                            ],
+                                          ),
                                         ),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                           decoration: BoxDecoration(
-                                            color: _statusColor(session.status).withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(12),
+                                            color: statusColor.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(_statusIcon(session.status), size: 14, color: _statusColor(session.status)),
-                                              const SizedBox(width: 4),
+                                              Container(
+                                                width: 8,
+                                                height: 8,
+                                                decoration: BoxDecoration(
+                                                  color: statusColor,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 5),
                                               Text(
-                                                session.statusLabel,
-                                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _statusColor(session.status)),
+                                                _statusLabel(session.status),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: statusColor,
+                                                ),
                                               ),
                                             ],
                                           ),
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 8),
-                                    if (session.subjectName != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(bottom: 4),
-                                        child: Row(
-                                          children: [
-                                            const Icon(Icons.book, size: 16, color: AppColors.textSecondary),
-                                            const SizedBox(width: 6),
-                                            Text(session.subjectName!, style: AppTheme.body),
-                                          ],
-                                        ),
-                                      ),
+                                    const SizedBox(height: 12),
                                     if (session.teacherName != null)
                                       Padding(
                                         padding: const EdgeInsets.only(bottom: 4),
                                         child: Row(
                                           children: [
-                                            const Icon(Icons.person, size: 16, color: AppColors.textSecondary),
+                                            Icon(Icons.person_outline, size: 15, color: AppColors.textTertiary),
                                             const SizedBox(width: 6),
-                                            Text(session.teacherName!, style: AppTheme.body),
+                                            Text(session.teacherName!, style: AppTheme.caption),
                                           ],
                                         ),
                                       ),
-                                    const Divider(),
+                                    const Divider(height: 16),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          session.price > 0 ? '${session.price.toStringAsFixed(0)} ج.م' : 'مجاني',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: session.price > 0 ? AppColors.primary : AppColors.success,
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                          decoration: BoxDecoration(
+                                            color: (session.price > 0
+                                                ? AppColors.primary
+                                                : AppColors.success).withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            session.price > 0
+                                                ? '${session.price.toStringAsFixed(0)} ج.م'
+                                                : 'مجاني',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                              color: session.price > 0 ? AppColors.primary : AppColors.success,
+                                            ),
                                           ),
                                         ),
                                         if (session.isLive)
-                                          const Row(
-                                            children: [
-                                              Icon(Icons.arrow_back, size: 16, color: AppColors.primary),
-                                              SizedBox(width: 4),
-                                              Text('دخول', style: TextStyle(color: AppColors.primary)),
-                                            ],
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.success.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  'دخول',
+                                                  style: TextStyle(
+                                                    color: AppColors.success,
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 4),
+                                                Icon(Icons.arrow_back, size: 16, color: AppColors.success),
+                                              ],
+                                            ),
                                           ),
                                       ],
                                     ),
@@ -194,7 +259,8 @@ class _StudentSessionsScreenState extends State<StudentSessionsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
-        child: const Icon(Icons.list),
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.list, color: Colors.white),
       ),
     );
   }

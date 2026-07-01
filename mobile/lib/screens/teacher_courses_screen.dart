@@ -63,7 +63,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
                       const Center(child: CircularProgressIndicator())
                     else
                       DropdownButtonFormField<Subject>(
-                        value: selectedSubject,
+                        initialValue: selectedSubject,
                         decoration: const InputDecoration(labelText: 'المادة'),
                         items: subjects.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
                         onChanged: (v) => setDialogState(() => selectedSubject = v),
